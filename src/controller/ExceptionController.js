@@ -33,8 +33,13 @@ export const updateExceptionRequests = async (req, res) => {
 
 export const getExceptionRequests = async (req, res) => {
   try {
+    const { id } = req.params;
+    const updateData = req.body;
     const filters = req.query;
-    const results = await getFilteredExceptions(filters);
+    const results = await getFilteredExceptions({
+      ...filters,
+      employeeId: filters.employeeId ? Number(filters.employeeId) : undefined,
+    });
     res.json(results);
   } catch (error) {
     logger.error(error);

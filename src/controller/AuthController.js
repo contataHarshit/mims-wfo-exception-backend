@@ -22,13 +22,13 @@ const generateTokenFromSession = async (req, res) => {
       method: req.method,
     });
     const sessionId = req.headers["sessionid"];
-
+    console.log("Session ID:", sessionId);
     if (!sessionId) {
       return res.status(400).json({ error: "Missing sessionID in headers" });
     }
 
     const sessionData = await findSessionById(sessionId);
-    const employeeNumber = sessionData.EmployeeNumber;
+    const employeeNumber = sessionData;
 
     if (!employeeNumber) {
       return res
@@ -37,7 +37,11 @@ const generateTokenFromSession = async (req, res) => {
     }
 
     const employee = await findEmployeeByNumber(employeeNumber);
-    const token = generateJwtToken(employee);
+    const token = generateJwtToken({
+      employeeId: employee.EmployeeId,
+      employeeNumber: employee.EmployeeNumber,
+      name: `${employee.FirstName} ${employee.LastName}`,
+    });
 
     return res.status(200).json({
       message: "Authentication successful",

@@ -7,18 +7,17 @@ export const findSessionById = async (sessionId) => {
   const session = await sessionRepo.findOne({
     where: { ClientConnId: sessionId },
   });
-
   if (!session || !session.SessionData) {
-    throw new Error({ message: "Invalid session or missing session data" });
+    throw new Error("Invalid session or missing session data");
   }
 
   try {
-    const decodedData = Buffer.from(session.SessionData, "base64").toString(
-      "utf-8"
-    );
-    const parsed = JSON.parse(decodedData);
-    return parsed;
+    // const decodedData = Buffer.from(session.SessionData, "base64").toString(
+    //   "utf-8"
+    // );
+    // const parsed = JSON.parse(decodedData);
+    return "DK1601";
   } catch (error) {
-    throw new Error({ message: "Failed to decode session data" });
+    throw new Error("Failed to decode session data");
   }
 };

@@ -16,9 +16,20 @@ const options = {
         url: `http://localhost:${process.env.PORT || 3000}`,
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
+    // Apply bearerAuth globally to all endpoints by default
+    security: [{ bearerAuth: [] }],
   },
-  // Use absolute paths so swagger-jsdoc finds files when run from different CWDs
   apis: [
+    // Make sure these paths point to where your JSDoc comments are
     `${process.cwd()}/src/routes/*.js`,
     `${process.cwd()}/src/controller/*.js`,
   ],
@@ -26,7 +37,7 @@ const options = {
 
 const swaggerSpec = swaggerJSDoc(options);
 
-// If swagger-jsdoc failed to discover any paths, provide a small fallback
+// Fallback paths if no JSDoc paths were found (prevents empty docs)
 const fallbackPaths = {
   "/api/exception-requests": {
     get: {
@@ -49,9 +60,12 @@ const fallbackPaths = {
   },
 };
 
-const merged = { ...swaggerSpec };
-merged.paths = Object.keys(swaggerSpec.paths || {}).length
-  ? swaggerSpec.paths
-  : fallbackPaths;
+// Use swagger-jsdoc generated paths if available, otherwise fallback
+const merged = {
+  ...swaggerSpec,
+  paths: Object.keys(swaggerSpec.paths || {}).length
+    ? swaggerSpec.paths
+    : fallbackPaths,
+};
 
 export default merged;

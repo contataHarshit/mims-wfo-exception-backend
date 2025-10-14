@@ -1,5 +1,6 @@
 // src/routes/exceptionRoutes.js
 import express from "express";
+import auth from "../middleware/auth.js";
 import {
   createExceptionRequest,
   getExceptionRequests,
@@ -20,11 +21,49 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - exceptionDateRange
+ *               - primaryReason
+ *               - submissionDate
+ *               - exceptionRequestedDays
+ *               - action
+ *               - employee
+ *               - manager
+ *               - project
+ *             properties:
+ *               exceptionDateRange:
+ *                 type: string
+ *                 example: "2025-10-14 to 2025-10-20"
+ *               primaryReason:
+ *                 type: string
+ *                 example: "Family emergency"
+ *               submissionDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-10-13"
+ *               exceptionRequestedDays:
+ *                 type: integer
+ *                 example: 5
+ *               action:
+ *                 type: string
+ *                 example: "CREATE"
+ *               employee:
+ *                 type: integer
+ *                 example: 123
+ *               manager:
+ *                 type: integer
+ *                 example: 456
+ *               project:
+ *                 type: integer
+ *                 example: 789
  *     responses:
  *       201:
  *         description: Created
+ *     security:
+ *       - bearerAuth: []
  */
-router.post("/", createExceptionRequest);
+
+router.post("/", auth, createExceptionRequest);
 
 /**
  * @openapi
@@ -42,8 +81,10 @@ router.post("/", createExceptionRequest);
  *     responses:
  *       200:
  *         description: OK
+ *     security:
+ *       - bearerAuth: []
  */
-router.get("/", getExceptionRequests);
+router.get("/", auth, getExceptionRequests);
 
 /**
  * @openapi
@@ -67,6 +108,9 @@ router.get("/", getExceptionRequests);
  *     responses:
  *       200:
  *         description: Updated
+ *     security:
+ *       - bearerAuth: []
  */
-router.put("/:id", updateExceptionRequests);
+router.put("/:id", auth, updateExceptionRequests);
+
 export default router;
