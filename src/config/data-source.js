@@ -10,7 +10,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  synchronize: false,
+  synchronize: true,
   debug: true,
   logging: ["query", "error"], // Enable query and error logging
   entities: ["./src/entity/*.js"],

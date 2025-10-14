@@ -1,6 +1,5 @@
 // src/routes/exceptionRoutes.js
 import express from "express";
-import auth from "../middleware/auth.js";
 import {
   createExceptionRequest,
   getExceptionRequests,
@@ -63,7 +62,7 @@ const router = express.Router();
  *       - bearerAuth: []
  */
 
-router.post("/", auth, createExceptionRequest);
+router.post("/", createExceptionRequest);
 
 /**
  * @openapi
@@ -78,13 +77,56 @@ router.post("/", auth, createExceptionRequest);
  *         schema:
  *           type: integer
  *         required: false
+ *       - in: query
+ *         name: employeeName
+ *         schema:
+ *           type: string
+ *         required: false
+ *       - in: query
+ *         name: managerName
+ *         schema:
+ *           type: string
+ *         required: false
+ *       - in: query
+ *         name: projectName
+ *         schema:
+ *           type: string
+ *         required: false
+ *       - in: query
+ *         name: dateFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         required: false
+ *       - in: query
+ *         name: dateTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         required: false
+ *       - in: query
+ *         name: currentStatus
+ *         schema:
+ *           type: string
+ *         required: false
+ *       - in: query
+ *         name: exceptionRequestedDays
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: exceptionApprovedDays
+ *         schema:
+ *           type: integer
+ *         required: false
  *     responses:
  *       200:
- *         description: OK
+ *         description: List of filtered exception requests
  *     security:
  *       - bearerAuth: []
  */
-router.get("/", auth, getExceptionRequests);
+
+router.get("/", getExceptionRequests);
 
 /**
  * @openapi
@@ -111,6 +153,6 @@ router.get("/", auth, getExceptionRequests);
  *     security:
  *       - bearerAuth: []
  */
-router.put("/:id", auth, updateExceptionRequests);
+router.put("/:id", updateExceptionRequests);
 
 export default router;

@@ -5,6 +5,7 @@ export default function authMiddleware(req, res, next) {
   try {
     // Use case-insensitive header getter
     const authHeader = req.get("Authorization") || req.get("authorization");
+    console.log(authHeader);
     let token = null;
 
     if (authHeader && typeof authHeader === "string") {
@@ -21,7 +22,6 @@ export default function authMiddleware(req, res, next) {
 
     if (!token) {
       logger.warn("Missing authentication token");
-      console.log("Missing authentication token");
       return res.status(401).json({ error: "Missing authentication token" });
     }
 

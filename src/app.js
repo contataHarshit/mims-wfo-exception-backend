@@ -8,8 +8,10 @@ import morganStream from "./utils/morganLogger.js"; // Morgan → Winston stream
 import requestLogger from "./middleware/logger.js"; // Optional custom logging
 import ExceptionRequestRoutes from "./routes/ExceptionRequestRoutes.js"; // Add your exceptions
 import AuthRoutes from "./routes/AuthRoute.js";
+import EmployeeRoutes from "./routes/EmployeeRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger.js";
+import authMiddleware from "./middleware/auth.js";
 
 dotenv.config();
 
@@ -51,7 +53,8 @@ app.use(morgan("combined", { stream: morganStream }));
 app.use(requestLogger);
 
 // Routes
-app.use("/api/exception-requests", ExceptionRequestRoutes);
+app.use("/api/exception-requests", authMiddleware, ExceptionRequestRoutes);
+app.use("/api/emplyee", authMiddleware, EmployeeRoutes);
 app.use("/api/auth", AuthRoutes);
 
 // Swagger UI

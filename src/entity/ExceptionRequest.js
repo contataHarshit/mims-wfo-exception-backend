@@ -1,7 +1,5 @@
 // src/entity/ExceptionRequest.js
 import { EntitySchema } from "typeorm";
-import Employee from "./Employee.js";
-import ProjectAssignment from "./ProjectAssignment.js";
 
 const ExceptionRequest = new EntitySchema({
   name: "ExceptionRequest",
@@ -11,15 +9,6 @@ const ExceptionRequest = new EntitySchema({
       primary: true,
       type: "int",
       generated: true,
-    },
-    exceptionDateRange: {
-      type: "varchar", // or "text" if preferred
-    },
-    primaryReason: {
-      type: "text",
-    },
-    submissionDate: {
-      type: "date",
     },
     exceptionRequestedDays: {
       type: "int",
@@ -43,6 +32,14 @@ const ExceptionRequest = new EntitySchema({
     action: {
       type: "varchar",
     },
+    submissionDate: {
+      type: "datetime", // ✅ fixed
+      createDate: true,
+    },
+    updatedDate: {
+      type: "datetime", // ✅ fixed
+      updateDate: true,
+    },
   },
   relations: {
     employee: {
@@ -53,7 +50,7 @@ const ExceptionRequest = new EntitySchema({
     },
     manager: {
       type: "many-to-one",
-      target: "Employee", // Manager is also an Employee entity
+      target: "Employee",
       eager: true,
       joinColumn: {
         name: "managerId",
@@ -64,6 +61,13 @@ const ExceptionRequest = new EntitySchema({
       target: "ProjectAssignment",
       eager: true,
       joinColumn: true,
+    },
+    exceptions: {
+      type: "one-to-many",
+      target: "ExceptionDateRange",
+      inverseSide: "exceptionRequest",
+      cascade: true,
+      eager: true,
     },
   },
 });
