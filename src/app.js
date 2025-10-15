@@ -54,7 +54,7 @@ app.use(requestLogger);
 
 // Routes
 app.use("/api/exception-requests", authMiddleware, ExceptionRequestRoutes);
-app.use("/api/emplyee", authMiddleware, EmployeeRoutes);
+app.use("/api/employee", authMiddleware, EmployeeRoutes);
 app.use("/api/auth", AuthRoutes);
 
 // Swagger UI

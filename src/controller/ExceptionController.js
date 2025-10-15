@@ -9,7 +9,10 @@ import logger from "../utils/logger.js";
 export const createExceptionRequest = async (req, res) => {
   try {
     const data = req.body;
-    const saved = await createException(data);
+    const saved = await createException({
+      employeeId: req.user.employeeId,
+      ...data,
+    });
     res.status(201).json(saved);
   } catch (error) {
     logger.error(error);
@@ -28,12 +31,10 @@ export const updateExceptionRequests = async (req, res) => {
     !updateData.currentStatus === "REJECTED" ||
     !updateData.currentStatus === "PARTIALLY_APPROVED"
   ) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "currentStatus is required and must be a string and APPROVED,REJECTED, PARTIALLT_APPROVED",
-      });
+    return res.status(400).json({
+      message:
+        "currentStatus is required and must be a string and APPROVED,REJECTED, PARTIALLT_APPROVED",
+    });
   }
 
   if (
