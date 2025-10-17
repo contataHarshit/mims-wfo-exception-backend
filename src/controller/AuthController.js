@@ -29,7 +29,7 @@ const generateTokenFromSession = async (req, res) => {
 
     const sessionData = await findSessionById(sessionId);
     const employeeNumber = sessionData;
-
+    console.log("Employee Number from session:", employeeNumber);
     if (!employeeNumber) {
       return res
         .status(400)
@@ -54,7 +54,7 @@ const generateTokenFromSession = async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error("Auth error", err.message);
+    logger.error("Auth error", err);
     return res
       .status(500)
       .json({ error: err.message || "Internal server error" });

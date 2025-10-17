@@ -1,3 +1,4 @@
+import e from "express";
 import { findEmployeeById } from "../services/employeeService.js";
 import { getProjectsByEmployeeId } from "../services/projectAssignmentService.js";
 import logger from "../utils/logger.js";
@@ -7,7 +8,7 @@ export const getEmployee = async (req, res) => {
     // Always use employeeId from the JWT token if available
     const employeeId = req.user?.employeeId;
     const employee = await findEmployeeById(employeeId);
-    const projects = await getProjectsByEmployeeId(String(employeeId));
+    const projects = await getProjectsByEmployeeId(String(employee.EmployeeId));
     const result = {
       employeeId: employee.EmployeeId,
       employeeName: [employee.FirstName, employee.MiddleName, employee.LastName]
@@ -19,7 +20,6 @@ export const getEmployee = async (req, res) => {
         name: p.ProjectName,
       })),
     };
-    console.log(employee);
     if (employee?.ManagerId) {
       const manager = await findEmployeeById(employee?.ManagerId);
       if (manager) {
