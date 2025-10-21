@@ -1,6 +1,10 @@
 // src/routes/exceptionRoutes.js
 import express from "express";
-import { getEmployee } from "../controller/EmployeeController.js";
+import {
+  getEmployee,
+  getManagerEmployee,
+  getAllEmployees,
+} from "../controller/EmployeeController.js";
 
 const router = express.Router();
 
@@ -42,4 +46,6 @@ const router = express.Router();
  */
 
 router.get("/", getEmployee);
+router.get("/manager", getManagerEmployee);
+router.get("/all", getAllEmployees);
 export default router;

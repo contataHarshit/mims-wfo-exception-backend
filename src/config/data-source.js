@@ -12,7 +12,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: true,
   debug: true,
-  logging: ["query", "error"], // Enable query and error logging
+  logging: ["error"], // Enable query and error logging
   entities: ["./src/entity/*.js"],
   options: {
     encrypt: true, // required for Azure; usually safe to leave true

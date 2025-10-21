@@ -1,50 +1,50 @@
-// src/services/exceptionService.js
 import { AppDataSource } from "../config/data-source.js";
+import { NotFoundError } from "../errors/NotFoundError.js";
 
 const exceptionRepo = AppDataSource.getRepository("ExceptionRequest");
 
 export const createException = async (data) => {
-  const {
-    employeeId,
-    managerId,
-    projectId,
-    action,
-    exceptionRequestedDays,
-    exceptions, // array of fromDate, toDate, reason, remarks
-  } = data;
+  const { employeeId, managerId, projectId, action, exceptions } = data;
 
   const exception = exceptionRepo.create({
     employee: { EmployeeId: employeeId },
     manager: { EmployeeId: managerId },
     project: { id: projectId },
     action,
-    exceptionRequestedDays,
-    exceptions, // this will be saved via cascade
+    exceptions,
   });
 
   return await exceptionRepo.save(exception);
 };
+
 export const updateException = async (id, updateData) => {
   const existing = await exceptionRepo.findOneBy({ id });
 
   if (!existing) {
-    throw new Error("Exception request not found");
+    throw new NotFoundError(`Exception request with ID "${id}" not found`);
   }
 
   exceptionRepo.merge(existing, updateData);
   return await exceptionRepo.save(existing);
 };
-export const getFilteredExceptions = async (filters) => {
+export const getFilteredExceptions = async (filters, user) => {
   const {
     employeeName,
+    employeeNumber,
     managerName,
     projectName,
+    exceptionRequestedDays,
+    exceptionApprovedDays,
     dateFrom,
     dateTo,
     currentStatus,
-    exceptionRequestedDays,
-    exceptionApprovedDays,
+    exceptionDateFrom,
+    exceptionDateTo,
+    page = 1,
+    limit = 10,
   } = filters;
+
+  const { role, employeeId } = user; // role = "EMPLOYEE" | "MANAGER" | "HR" | "ADMIN"
 
   const query = exceptionRepo
     .createQueryBuilder("request")
@@ -52,8 +52,8 @@ export const getFilteredExceptions = async (filters) => {
     .leftJoin("request.project", "project")
     .leftJoin("request.manager", "manager")
     .leftJoinAndSelect("request.exceptions", "exceptionDetails")
-    // Select all columns from request (exception)
     .addSelect([
+      "employee.EmployeeNumber",
       "employee.FirstName",
       "employee.LastName",
       "project.ProjectName",
@@ -61,11 +61,26 @@ export const getFilteredExceptions = async (filters) => {
       "manager.LastName",
     ]);
 
+  //  Role-based data restriction
+  if (role === "EMPLOYEE") {
+    query.andWhere("employee.EmployeeId = :employeeId", { employeeId });
+  } else if (role === "MANAGER") {
+    query.andWhere("manager.EmployeeId = :employeeId", { employeeId });
+  }
+  // HR and ADMIN can view all records
+
+  //  Filtering
   if (employeeName) {
     query.andWhere(
       "(employee.FirstName LIKE :employeeName OR employee.LastName LIKE :employeeName)",
       { employeeName: `%${employeeName}%` }
     );
+  }
+
+  if (employeeNumber) {
+    query.andWhere("employee.EmployeeNumber LIKE :employeeNumber", {
+      employeeNumber: `%${employeeNumber}%`,
+    });
   }
 
   if (managerName) {
@@ -88,36 +103,52 @@ export const getFilteredExceptions = async (filters) => {
     });
   }
 
+  if (exceptionDateFrom && exceptionDateTo) {
+    query.andWhere(
+      "exceptionDetails.fromDate BETWEEN :exceptionDateFrom AND :exceptionDateTo",
+      { exceptionDateFrom, exceptionDateTo }
+    );
+  }
+
   if (currentStatus) {
     query.andWhere("request.currentStatus = :currentStatus", { currentStatus });
   }
 
   if (exceptionRequestedDays) {
-    query.andWhere("request.exceptionRequestedDays = :exceptionRequestedDays", {
-      exceptionRequestedDays,
-    });
+    query.andWhere(
+      "exceptionDetails.exceptionRequestedDays = :exceptionRequestedDays",
+      {
+        exceptionRequestedDays,
+      }
+    );
   }
 
   if (exceptionApprovedDays) {
-    query.andWhere("request.exceptionApprovedDays = :exceptionApprovedDays", {
-      exceptionApprovedDays,
-    });
+    query.andWhere(
+      "exceptionDetails.exceptionApprovedDays = :exceptionApprovedDays",
+      {
+        exceptionApprovedDays,
+      }
+    );
   }
 
-  const results = await query.getRawAndEntities();
+  //  Pagination
+  query.skip((page - 1) * limit).take(limit);
 
-  // getRawAndEntities returns:
-  // results.entities = array of full 'request' entities (exception data)
-  // results.raw = array of raw query rows including selected joined fields
+  const [data, total] = await query.getManyAndCount();
 
-  // Now merge the names into each exception object:
-  return results.entities.map((exception, index) => {
-    const raw = results.raw[index];
-    return {
+  //  Formatting response
+  return {
+    data: data.map((exception) => ({
       ...exception,
-      employeeName: `${raw["employee_FirstName"]} ${raw["employee_LastName"]}`,
-      projectName: raw["project_ProjectName"],
-      managerName: `${raw["manager_FirstName"]} ${raw["manager_LastName"]}`,
-    };
-  });
+      employeeName: `${exception.employee.FirstName} ${exception.employee.LastName}`,
+      employeeNumber: exception.employee.EmployeeNumber,
+      managerName: `${exception.manager.FirstName} ${exception.manager.LastName}`,
+      projectName: exception.project.ProjectName,
+    })),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 };

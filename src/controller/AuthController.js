@@ -2,48 +2,59 @@ import { findSessionById } from "../services/sessionService.js";
 import { findEmployeeByNumber } from "../services/employeeService.js";
 import { generateToken as generateJwtToken } from "../utils/jwt.js";
 import logger from "../utils/logger.js";
-
-const redact = (obj) => {
-  if (!obj || typeof obj !== "object") return obj;
-  const copy = { ...obj };
-  // Redact common sensitive fields
-  ["password", "pwd", "token", "jwt", "authorization"].forEach((k) => {
-    if (k in copy) copy[k] = "[REDACTED]";
-  });
-  return copy;
-};
+import { NotFoundError } from "../errors/NotFoundError.js";
+import { BadRequestError } from "../errors/BadRequestError.js";
+import { sendSuccess, sendError } from "../utils/responseHandler.js";
+import { redact } from "../utils/redactUtils.js";
 
 const generateTokenFromSession = async (req, res) => {
+  const sessionId = req.headers["sessionid"];
+
+  logger.info("Authentication Request Initiated", {
+    path: req.path,
+    method: req.method,
+    headers: redact(req.headers),
+    body: redact(req.body),
+    sessionId,
+  });
+
   try {
-    logger.info("Auth request start", {
-      headers: redact(req.headers),
-      body: redact(req.body),
-      path: req.path,
-      method: req.method,
-    });
-    const sessionId = req.headers["sessionid"];
-    console.log("Session ID:", sessionId);
     if (!sessionId) {
-      return res.status(400).json({ error: "Missing sessionID in headers" });
+      throw new BadRequestError("Missing sessionID in headers");
     }
 
-    const sessionData = await findSessionById(sessionId);
-    const employeeNumber = sessionData;
-    console.log("Employee Number from session:", employeeNumber);
+    const employeeNumber = await findSessionById(sessionId);
     if (!employeeNumber) {
-      return res
-        .status(400)
-        .json({ error: "EmployeeNumber not found in session" });
+      throw new NotFoundError("Session not found or expired");
     }
+
+    logger.info("Session found", { sessionId, employeeNumber });
 
     const employee = await findEmployeeByNumber(employeeNumber);
-    const token = generateJwtToken({
+    if (!employee) {
+      throw new NotFoundError("Employee not found for session");
+    }
+
+    logger.info("Employee found", {
       employeeId: employee.EmployeeId,
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
     });
 
-    return res.status(200).json({
+    const tokenPayload = {
+      employeeId: employee.EmployeeId,
+      employeeNumber: employee.EmployeeNumber,
+      name: `${employee.FirstName} ${employee.LastName}`,
+    };
+
+    const token = generateJwtToken(tokenPayload);
+
+    logger.info("JWT Token generated", {
+      employeeId: employee.EmployeeId,
+      employeeNumber: employee.EmployeeNumber,
+    });
+
+    return sendSuccess(res, {
       message: "Authentication successful",
       token,
       employee: {
@@ -54,10 +65,14 @@ const generateTokenFromSession = async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error("Auth error", err);
-    return res
-      .status(500)
-      .json({ error: err.message || "Internal server error" });
+    logger.error("Authentication Error", {
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+      sessionId,
+    });
+
+    return sendError(res, err);
   }
 };
 
