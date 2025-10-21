@@ -6,7 +6,7 @@ const router = express.Router();
 
 /**
  * @openapi
- * /api/emplyee:
+ * /api/employee:
  *   post:
  *     summary: Get employee profile and projects
  *     tags:

@@ -16,7 +16,7 @@ export const findSessionById = async (sessionId) => {
     //   "utf-8"
     // );
     // const parsed = JSON.parse(decodedData);
-    return "DK1601";
+    return "EMP001";
   } catch (error) {
     throw new Error("Failed to decode session data");
   }

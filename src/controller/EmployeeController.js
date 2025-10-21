@@ -6,8 +6,10 @@ export const getEmployee = async (req, res) => {
   try {
     // Always use employeeId from the JWT token if available
     const employeeId = req.user?.employeeId;
+    
     const employee = await findEmployeeById(employeeId);
-    const projects = await getProjectsByEmployeeId(String(employeeId));
+    const projects = await getProjectsByEmployeeId(employee.EmployeeNumber);
+    console.log(projects);
     const result = {
       employeeId: employee.EmployeeId,
       employeeName: [employee.FirstName, employee.MiddleName, employee.LastName]
@@ -19,7 +21,6 @@ export const getEmployee = async (req, res) => {
         name: p.ProjectName,
       })),
     };
-    console.log(employee);
     if (employee?.ManagerId) {
       const manager = await findEmployeeById(employee?.ManagerId);
       if (manager) {

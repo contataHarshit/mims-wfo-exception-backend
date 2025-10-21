@@ -15,7 +15,7 @@ export const findEmployeeByNumber = async (employeeNumber) => {
 };
 
 export const findEmployeeById = async (EmployeeId) => {
-  console.log(EmployeeId);
+  console.log(EmployeeId,"DATAAAAAAAAAAAAAAAA");
   const employee = await employeeRepo.findOne({
     where: { EmployeeId: parseInt(EmployeeId, 10) }, // EmployeeId is int
   });
