@@ -1,3 +1,4 @@
+import e from "express";
 import { findEmployeeById } from "../services/employeeService.js";
 import { getProjectsByEmployeeId } from "../services/projectAssignmentService.js";
 import logger from "../utils/logger.js";
@@ -8,8 +9,7 @@ export const getEmployee = async (req, res) => {
     const employeeId = req.user?.employeeId;
     
     const employee = await findEmployeeById(employeeId);
-    const projects = await getProjectsByEmployeeId(employee.EmployeeNumber);
-    console.log(projects);
+    const projects = await getProjectsByEmployeeId(String(employee.EmployeeId));
     const result = {
       employeeId: employee.EmployeeId,
       employeeName: [employee.FirstName, employee.MiddleName, employee.LastName]

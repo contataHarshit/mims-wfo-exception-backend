@@ -10,13 +10,6 @@ const ExceptionRequest = new EntitySchema({
       type: "int",
       generated: true,
     },
-    exceptionRequestedDays: {
-      type: "int",
-    },
-    exceptionApprovedDays: {
-      type: "int",
-      nullable: true,
-    },
     approvalDate: {
       type: "date",
       nullable: true,

@@ -23,6 +23,13 @@ const ExceptionDateRange = new EntitySchema({
       type: "text",
       nullable: true,
     },
+    exceptionRequestedDays: {
+      type: "int",
+    },
+    exceptionApprovedDays: {
+      type: "int",
+      nullable: true,
+    },
   },
   relations: {
     exceptionRequest: {
