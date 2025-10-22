@@ -14,14 +14,6 @@ const ExceptionRequest = new EntitySchema({
       type: "date",
       nullable: true,
     },
-    currentStatus: {
-      type: "varchar",
-      default: "PENDING",
-    },
-    managerRemarks: {
-      type: "text",
-      nullable: true,
-    },
     action: {
       type: "varchar",
     },

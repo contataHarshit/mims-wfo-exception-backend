@@ -1,5 +1,5 @@
 import { AppDataSource } from "../config/data-source.js";
-import ProjectAssignment from "../entity/ProjectAssignment.js";
+import ProjectAssignment from "../entity/legacy/ProjectAssignment.js";
 import { ServiceError } from "../errors/ServiceError.js";
 
 export const getProjectsByEmployeeId = async (employeeId) => {

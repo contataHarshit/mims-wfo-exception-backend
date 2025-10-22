@@ -1,4 +1,3 @@
-// src/entity/ProjectAssignment.js
 import { EntitySchema } from "typeorm";
 
 const ProjectAssignment = new EntitySchema({

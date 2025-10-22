@@ -153,6 +153,6 @@ router.get("/", getExceptionRequests);
  *     security:
  *       - bearerAuth: []
  */
-router.put("/:id", updateExceptionRequests);
+router.put("/", updateExceptionRequests);
 
 export default router;

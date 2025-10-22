@@ -1,7 +1,11 @@
 import { AppDataSource } from "../config/data-source.js";
+import ExceptionRequest from "../entity/ExceptionRequest.js";
+import ExceptionDateRange from "../entity/ExceptionDateRange.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 
-const exceptionRepo = AppDataSource.getRepository("ExceptionRequest");
+const dateRangeRepo = AppDataSource.getRepository(ExceptionDateRange);
+
+const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
 
 export const createException = async (data) => {
   const { employeeId, managerId, projectId, action, exceptions } = data;
@@ -17,16 +21,50 @@ export const createException = async (data) => {
   return await exceptionRepo.save(exception);
 };
 
-export const updateException = async (id, updateData) => {
-  const existing = await exceptionRepo.findOneBy({ id });
+export const updateException = async (
+  id,
+  { updateDateRangeId, ...updateData }
+) => {
+  const existing = await exceptionRepo.findOne({
+    where: { id },
+    relations: ["exceptions"],
+  });
 
   if (!existing) {
     throw new NotFoundError(`Exception request with ID "${id}" not found`);
   }
 
-  exceptionRepo.merge(existing, updateData);
+  // Find the specific date range to update
+  const targetRange = existing.exceptions.find(
+    (range) => range.id === parseInt(updateDateRangeId, 10)
+  );
+
+  if (!targetRange) {
+    throw new NotFoundError(
+      `Exception date range with ID "${updateDateRangeId}" not found for request ID "${id}"`
+    );
+  }
+
+  // Update fields
+  if (updateData.currentStatus) {
+    targetRange.currentStatus = updateData.currentStatus;
+  }
+
+  if (updateData.managerRemarks) {
+    targetRange.managerRemarks = updateData.managerRemarks;
+  }
+
+  if (updateData.exceptionApprovedDays !== undefined) {
+    targetRange.exceptionApprovedDays = parseInt(
+      updateData.exceptionApprovedDays,
+      10
+    );
+  }
+
+  // Save and return updated exception request (with updated exception date range)
   return await exceptionRepo.save(existing);
 };
+
 export const getFilteredExceptions = async (filters, user) => {
   const {
     employeeName,
@@ -141,10 +179,10 @@ export const getFilteredExceptions = async (filters, user) => {
   return {
     data: data.map((exception) => ({
       ...exception,
-      employeeName: `${exception.employee.FirstName} ${exception.employee.LastName}`,
-      employeeNumber: exception.employee.EmployeeNumber,
-      managerName: `${exception.manager.FirstName} ${exception.manager.LastName}`,
-      projectName: exception.project.ProjectName,
+      employeeName: `${exception?.employee?.FirstName} ${exception?.employee?.LastName}`,
+      employeeNumber: exception?.employee?.EmployeeNumber,
+      managerName: `${exception?.manager?.FirstName} ${exception?.manager?.LastName}`,
+      projectName: exception?.project?.ProjectName,
     })),
     total,
     page,

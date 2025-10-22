@@ -1,8 +1,9 @@
 import { AppDataSource } from "../config/data-source.js";
 import { formatEmployeeList } from "../utils/employeeUtils.js";
+import Employee from "../entity/legacy/Employee.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 
-const employeeRepo = AppDataSource.getRepository("Employee");
+const employeeRepo = AppDataSource.getRepository(Employee);
 
 export const findEmployeeByNumber = async (employeeNumber) => {
   const employee = await employeeRepo.findOne({

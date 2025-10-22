@@ -56,7 +56,10 @@ export const createExceptionRequest = async (req, res) => {
       exceptionId: saved.id,
     });
 
-    return sendSuccess(res, saved, "Exception created successfully");
+    return sendSuccess(res, {
+      saved,
+      message: "Exception created successfully",
+    });
   } catch (error) {
     logger.error("Error in createExceptionRequest", {
       error: error.message,
@@ -68,7 +71,7 @@ export const createExceptionRequest = async (req, res) => {
 };
 
 export const updateExceptionRequests = async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id || req.query.id;
   const updateData = req.body;
   const userInfo = req.user;
 
@@ -78,10 +81,12 @@ export const updateExceptionRequests = async (req, res) => {
       exceptionId: id,
       updateData,
     });
-
+    if (!updateData?.updateDateRangeId) {
+      throw new BadRequestError(`updateDateRangeId is required`);
+    }
     const validStatuses = ["APPROVED", "REJECTED", "PARTIALLY_APPROVED"];
     if (
-      !updateData.currentStatus ||
+      updateData.currentStatus &&
       !validStatuses.includes(updateData.currentStatus)
     ) {
       throw new BadRequestError(
@@ -90,15 +95,13 @@ export const updateExceptionRequests = async (req, res) => {
     }
 
     if (
-      !updateData.managerRemarks ||
+      updateData.managerRemarks &&
       typeof updateData.managerRemarks !== "string"
     ) {
-      throw new BadRequestError(
-        "managerRemarks is required and must be a string"
-      );
+      throw new BadRequestError("managerRemarks must be a string");
     }
 
-    const result = await updateException(Number(id), updateData);
+    const result = await updateException(parseInt(id, 10), updateData);
 
     logger.info("Exception updated successfully", {
       updatedBy: userInfo,
@@ -106,7 +109,7 @@ export const updateExceptionRequests = async (req, res) => {
       newStatus: updateData.currentStatus,
     });
 
-    return sendSuccess(res, result, "Exception request updated");
+    return sendSuccess(res, { result, message: "Exception request updated" });
   } catch (error) {
     logger.error("Error in updateExceptionRequests", {
       error: error.message,
@@ -121,18 +124,14 @@ export const updateExceptionRequests = async (req, res) => {
 export const getExceptionRequests = async (req, res) => {
   const filters = req.query;
   const userInfo = req.user;
-  const employeeId = userInfo?.employeeId;
-
+  userInfo.role = "EMPLOYEE";
   try {
     logger.info("Get Exception Requests initiated", {
       requestedBy: userInfo,
       filters,
     });
 
-    const results = await getFilteredExceptions({
-      ...filters,
-      employeeId: employeeId ? Number(employeeId) : undefined,
-    });
+    const results = await getFilteredExceptions(filters, userInfo);
 
     logger.info("Exception requests fetched", {
       requestedBy: userInfo,

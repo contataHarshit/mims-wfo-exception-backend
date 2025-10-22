@@ -30,6 +30,14 @@ const ExceptionDateRange = new EntitySchema({
       type: "int",
       nullable: true,
     },
+    currentStatus: {
+      type: "varchar",
+      default: "PENDING",
+    },
+    managerRemarks: {
+      type: "text",
+      nullable: true,
+    },
   },
   relations: {
     exceptionRequest: {
