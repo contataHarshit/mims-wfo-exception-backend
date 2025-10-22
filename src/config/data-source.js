@@ -4,6 +4,7 @@ import ExceptionDateRange from "../entity/ExceptionDateRange.js";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 import Employee from "../entity/legacy/Employee.js";
 import ProjectAssignment from "../entity/legacy/ProjectAssignment.js";
+import UserSession from "../entity/legacy/UserSession.js";
 
 dotenv.config();
 
@@ -21,7 +22,8 @@ export const AppDataSource = new DataSource({
     ExceptionRequest,
     ExceptionDateRange,
     Employee,
-    ProjectAssignment /* add other entities here */,
+    ProjectAssignment,
+    UserSession /* add other entities here */,
   ],
   options: {
     encrypt: true, // required for Azure; usually safe to leave true
