@@ -1,7 +1,6 @@
-// src/services/sessionService.js
-import e from "express";
 import { AppDataSource } from "../config/data-source.js";
 import { decryptOpenSSL } from "../utils/decryptUtils.js";
+import { NotFoundError } from "../errors/NotFoundError.js";
 export const findSessionById = async (sessionId) => {
   const sessionRepo = AppDataSource.getRepository("UserSession");
 
@@ -9,7 +8,7 @@ export const findSessionById = async (sessionId) => {
     where: { ClientConnId: sessionId },
   });
   if (!session || !session.SessionData) {
-    throw new Error("Invalid session or missing session data");
+    throw new NotFoundError(`Session not found ${sessionId}`);
   }
 
   try {

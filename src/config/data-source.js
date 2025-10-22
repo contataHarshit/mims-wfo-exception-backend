@@ -1,5 +1,9 @@
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
+import ExceptionDateRange from "../entity/ExceptionDateRange.js";
+import ExceptionRequest from "../entity/ExceptionRequest.js";
+import Employee from "../entity/legacy/Employee.js";
+import ProjectAssignment from "../entity/legacy/ProjectAssignment.js";
 
 dotenv.config();
 
@@ -12,8 +16,13 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: true,
   debug: true,
-  logging: ["query", "error"], // Enable query and error logging
-  entities: ["./src/entity/*.js"],
+  logging: ["error"], // Enable query and error logging
+  entities: [
+    ExceptionRequest,
+    ExceptionDateRange,
+    Employee,
+    ProjectAssignment /* add other entities here */,
+  ],
   options: {
     encrypt: true, // required for Azure; usually safe to leave true
     trustServerCertificate: true, // allow self-signed certs (for local dev)

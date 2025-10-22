@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret";
-const DEFAULT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
+const JWT_SECRET = process.env.JWT_SECRET;
+const DEFAULT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
 
 /**
  * generateToken
