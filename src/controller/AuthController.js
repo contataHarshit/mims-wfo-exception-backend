@@ -62,6 +62,7 @@ const generateTokenFromSession = async (req, res) => {
         employeeNumber: employee.EmployeeNumber,
         name: `${employee.FirstName} ${employee.LastName}`,
         email: employee.Email,
+        role:"MANAGER"
       },
     });
   } catch (err) {
