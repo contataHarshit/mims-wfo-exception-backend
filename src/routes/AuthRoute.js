@@ -19,7 +19,41 @@ const router = express.Router();
  *         description: Session ID header
  *     responses:
  *       200:
- *         description: Token generated successfully
+ *         description: Token generated successfully (enveloped)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     token:
+ *                       type: string
+ *                     employee:
+ *                       type: object
+ *                       properties:
+ *                         employeeId:
+ *                           type: integer
+ *                         employeeNumber:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *       400:
+ *         description: Bad request (missing session id)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
  */
 router.post("/", generateTokenFromSession);
 export default router;

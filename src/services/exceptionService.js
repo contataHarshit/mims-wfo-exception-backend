@@ -2,6 +2,8 @@ import { AppDataSource } from "../config/data-source.js";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 import ExceptionDateRange from "../entity/ExceptionDateRange.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
+import e from "express";
+import { PermissionDeniedError } from "../errors/AuthError.js";
 
 const dateRangeRepo = AppDataSource.getRepository(ExceptionDateRange);
 
@@ -23,17 +25,22 @@ export const createException = async (data) => {
 
 export const updateException = async (
   id,
-  { updateDateRangeId, ...updateData }
+  { updateDateRangeId, ...updateData },
+  employeeId
 ) => {
   const existing = await exceptionRepo.findOne({
     where: { id },
-    relations: ["exceptions"],
+    relations: ["exceptions", "employee", "manager", "project"],
   });
 
   if (!existing) {
     throw new NotFoundError(`Exception request with ID "${id}" not found`);
   }
-
+  if (existing?.employee?.EmployeeId === employeeId) {
+    throw new PermissionDeniedError(
+      `You can't update your own record employeeId:${employeeId} recordEmployeeId: ${existing?.employee?.EmployeeId}`
+    );
+  }
   // Find the specific date range to update
   const targetRange = existing.exceptions.find(
     (range) => range.id === parseInt(updateDateRangeId, 10)
@@ -99,15 +106,14 @@ export const getFilteredExceptions = async (filters, user) => {
       "manager.LastName",
     ]);
 
-  //  Role-based data restriction
+  // 🔒 Role-based data restriction
   if (role === "EMPLOYEE") {
     query.andWhere("employee.EmployeeId = :employeeId", { employeeId });
   } else if (role === "MANAGER") {
     query.andWhere("manager.EmployeeId = :employeeId", { employeeId });
   }
-  // HR and ADMIN can view all records
 
-  //  Filtering
+  // 🔍 Filters
   if (employeeName) {
     query.andWhere(
       "(employee.FirstName LIKE :employeeName OR employee.LastName LIKE :employeeName)",
@@ -149,7 +155,9 @@ export const getFilteredExceptions = async (filters, user) => {
   }
 
   if (currentStatus) {
-    query.andWhere("request.currentStatus = :currentStatus", { currentStatus });
+    query.andWhere("exceptionDetails.currentStatus = :currentStatus", {
+      currentStatus,
+    });
   }
 
   if (exceptionRequestedDays) {
@@ -170,18 +178,25 @@ export const getFilteredExceptions = async (filters, user) => {
     );
   }
 
-  //  Pagination
+  // 📅 Sort by latest submission date first
+  query.orderBy("request.submissionDate", "DESC");
+
+  // 📄 Pagination
   query.skip((page - 1) * limit).take(limit);
 
   const [data, total] = await query.getManyAndCount();
 
-  //  Formatting response
+  // 🧾 Format response
   return {
     data: data.map((exception) => ({
       ...exception,
-      employeeName: `${exception?.employee?.FirstName} ${exception?.employee?.LastName}`,
+      employeeName: `${exception?.employee?.FirstName || ""} ${
+        exception?.employee?.LastName || ""
+      }`.trim(),
       employeeNumber: exception?.employee?.EmployeeNumber,
-      managerName: `${exception?.manager?.FirstName} ${exception?.manager?.LastName}`,
+      managerName: `${exception?.manager?.FirstName || ""} ${
+        exception?.manager?.LastName || ""
+      }`.trim(),
       projectName: exception?.project?.ProjectName,
     })),
     total,

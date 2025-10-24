@@ -14,52 +14,42 @@ const router = express.Router();
  *     summary: Create a new exception request
  *     tags:
  *       - ExceptionRequests
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - exceptionDateRange
- *               - primaryReason
- *               - submissionDate
- *               - exceptionRequestedDays
- *               - action
- *               - employee
- *               - manager
- *               - project
- *             properties:
- *               exceptionDateRange:
- *                 type: string
- *                 example: "2025-10-14 to 2025-10-20"
- *               primaryReason:
- *                 type: string
- *                 example: "Family emergency"
- *               submissionDate:
- *                 type: string
- *                 format: date
- *                 example: "2025-10-13"
- *               exceptionRequestedDays:
- *                 type: integer
- *                 example: 5
- *               action:
- *                 type: string
- *                 example: "CREATE"
- *               employee:
- *                 type: integer
- *                 example: 123
- *               manager:
- *                 type: integer
- *                 example: 456
- *               project:
- *                 type: integer
- *                 example: 789
+ *             $ref: '#/components/schemas/ExceptionCreateRequest'
  *     responses:
  *       201:
- *         description: Created
- *     security:
- *       - bearerAuth: []
+ *         description: Created (enveloped)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       $ref: '#/components/schemas/ExceptionRequest'
+ *       400:
+ *         description: Validation error (enveloped)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
  */
 
 router.post("/", createExceptionRequest);
@@ -121,7 +111,22 @@ router.post("/", createExceptionRequest);
  *         required: false
  *     responses:
  *       200:
- *         description: List of filtered exception requests
+ *         description: List of filtered exception requests (enveloped)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     exceptions:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/ExceptionRequest'
  *     security:
  *       - bearerAuth: []
  */
@@ -135,21 +140,42 @@ router.get("/", getExceptionRequests);
  *     summary: Update an exception request
  *     tags:
  *       - ExceptionRequests
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *               currentStatus:
+ *                 type: string
+ *                 enum: [PENDING, APPROVED, REJECTED, PARTIALLY_APPROVED]
+ *               managerRemarks:
+ *                 type: string
+ *             required:
+ *               - id
+ *               - currentStatus
+ *               - managerRemarks
  *     responses:
  *       200:
- *         description: Updated
+ *         description: Updated (enveloped)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       $ref: '#/components/schemas/ExceptionRequest'
+ *       400:
+ *         description: Validation error (enveloped)
  *     security:
  *       - bearerAuth: []
  */

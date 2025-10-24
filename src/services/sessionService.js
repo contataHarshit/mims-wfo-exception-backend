@@ -17,7 +17,7 @@ export const findSessionById = async (sessionId) => {
     // console.log("Decrypted session data:", plaintext);
     // Assuming the plaintext is just the employee number
     // Adjust parsing logic if the format is different
-    return "AK1602";
+    return session.SessionData;
   } catch (error) {
     throw new Error("Failed to decode session data");
   }

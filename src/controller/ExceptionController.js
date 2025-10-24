@@ -8,7 +8,7 @@ import logger from "../utils/logger.js";
 import { sendSuccess, sendError } from "../utils/responseHandler.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
-
+import { sendMail } from "../utils/mailer.js";
 export const createExceptionRequest = async (req, res) => {
   const employeeNumber = req.user?.employeeNumber;
   const employeeId = req.user?.employeeId;
@@ -101,15 +101,47 @@ export const updateExceptionRequests = async (req, res) => {
       throw new BadRequestError("managerRemarks must be a string");
     }
 
-    const result = await updateException(parseInt(id, 10), updateData);
-
+    const result = await updateException(
+      parseInt(id, 10),
+      updateData,
+      userInfo?.employeeId
+    );
+    const epmlyeeEmailResonse = await sendMail(
+      result?.employee?.Email,
+      "Work From Office Exception Request Update",
+      updateData.currentStatus,
+      { name: `${result?.employee?.FirstName} ${result?.employee?.LastName}` }
+    );
+    // logger.info("Employee email respose", { epmlyeeEmailResonse });
+    // const managerEmailResonse = await sendMail(
+    //   result?.manager?.Email,
+    //   "Work From Office Exception Request Update",
+    //   updateData.currentStatus,
+    //   { name: `${result?.employee?.FirstName} ${result?.employee?.LastName}` }
+    // );
+    // logger.info("Employee email respose", { managerEmailResonse });
+    // console.log(result?.employee?.Email);
+    // console.log(result?.manager?.Email);
     logger.info("Exception updated successfully", {
       updatedBy: userInfo,
       exceptionId: id,
       newStatus: updateData.currentStatus,
     });
 
-    return sendSuccess(res, { result, message: "Exception request updated" });
+    return sendSuccess(res, {
+      result: {
+        ...result,
+        employee: {
+          name: `${result?.employee?.FirstName} ${result?.employee?.LastName}`,
+        },
+        manager: {
+          name: `${result?.employee?.FirstName} ${result?.employee.LastName}`,
+        },
+        project: { name: result?.project?.ProjectName },
+      },
+
+      message: "Exception request updated",
+    });
   } catch (error) {
     logger.error("Error in updateExceptionRequests", {
       error: error.message,
@@ -124,7 +156,10 @@ export const updateExceptionRequests = async (req, res) => {
 export const getExceptionRequests = async (req, res) => {
   const filters = req.query;
   const userInfo = req.user;
-  userInfo.role = "EMPLOYEE";
+  if (filters.isSelf === true || filters.isSelf === "true") {
+    userInfo.role = "EMPLOYEE";
+  }
+  // userInfo.role = "EMPLOYEE"; // TEMPORARY FIX FOR TESTING PURPOSES
   try {
     logger.info("Get Exception Requests initiated", {
       requestedBy: userInfo,

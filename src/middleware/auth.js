@@ -40,7 +40,7 @@ export default function authMiddleware(req, res, next) {
       return sendError(res, authErr, authErr.statusCode);
     }
 
-    const { employeeId, employeeNumber, name } = payload || {};
+    const { employeeId, employeeNumber, name, role } = payload || {};
 
     if (!employeeId || !employeeNumber || !name) {
       const err = new AuthError("Token payload missing required fields");
@@ -52,7 +52,7 @@ export default function authMiddleware(req, res, next) {
       employeeId,
       employeeNumber,
       name,
-      raw: payload,
+      role,
     };
 
     logger.info("User authenticated", {

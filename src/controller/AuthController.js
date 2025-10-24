@@ -40,11 +40,12 @@ const generateTokenFromSession = async (req, res) => {
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
     });
-
+    const role = "EMPLOYEE"; //MANAGER | HR | ADMIN can be set based on your logic
     const tokenPayload = {
       employeeId: employee.EmployeeId,
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
+      role,
     };
 
     const token = generateJwtToken(tokenPayload);
@@ -62,6 +63,7 @@ const generateTokenFromSession = async (req, res) => {
         employeeNumber: employee.EmployeeNumber,
         name: `${employee.FirstName} ${employee.LastName}`,
         email: employee.Email,
+        role,
       },
     });
   } catch (err) {
