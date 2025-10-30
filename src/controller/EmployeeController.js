@@ -29,7 +29,6 @@ export const getEmployee = async (req, res) => {
     }
 
     const projects = await getProjectsByEmployeeId(String(employee.EmployeeId));
-
     const result = {
       employeeId: employee.EmployeeId,
       employeeName: [employee.FirstName, employee.MiddleName, employee.LastName]

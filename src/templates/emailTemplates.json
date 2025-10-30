@@ -1,0 +1,7 @@
+{
+    "PENDING_REVIEW": "<h2>Hi {{name}},</h2><p>Your request is currently pending review. We will notify you once a decision has been made.</p>",
+"SUBMITTED": "<h2>Hello {{name}},</h2><p>Your request has been submitted successfully and is pending review.</p>",
+  "APPROVED": "<h2>Dear {{name}},</h2><p>Your request has been approved successfully. You can now proceed with the next steps.</p>",
+  "REJECTED": "<h2>Hi {{name}},</h2><p>We're sorry to inform you that your request has been rejected.</p>",
+  "PARTIALLY_APPROVED": "<h2>Dear {{name}},</h2><p>Your request has been partially approved. Please check your dashboard for more details.</p>"
+}
