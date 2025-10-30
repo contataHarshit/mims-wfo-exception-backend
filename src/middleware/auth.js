@@ -2,29 +2,19 @@ import { verifyToken } from "../utils/jwt.js";
 import logger from "../utils/logger.js";
 import { sendError } from "../utils/responseHandler.js";
 import { AuthError } from "../errors/AuthError.js";
+import { findEmployeeByNumber } from "../services/employeeService.js";
 
-export default function authMiddleware(req, res, next) {
+export default async function authMiddleware(req, res, next) {
   try {
     const authHeader = req.get("Authorization") || req.get("authorization");
     let token = null;
 
-    // Check Bearer token
-    if (authHeader && typeof authHeader === "string") {
-      const parts = authHeader.split(" ");
-      if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
-        token = parts[1];
-      }
-    }
-
-    // Fallback headers
-    if (!token) {
+    // Extract Bearer token (we can safely assume this will exist)
+    const parts = authHeader.split(" ");
+    if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
+      token = parts[1];
+    } else {
       token = req.get("token") || req.get("x-access-token");
-    }
-
-    if (!token) {
-      const err = new AuthError("Missing authentication token");
-      logger.warn(err.message, { ip: req.ip, path: req.originalUrl });
-      return sendError(res, err, err.statusCode);
     }
 
     let payload;
@@ -40,28 +30,37 @@ export default function authMiddleware(req, res, next) {
       return sendError(res, authErr, authErr.statusCode);
     }
 
-    const { employeeId, employeeNumber, name, role } = payload || {};
+    const { employeeNumber, role } = payload || {};
 
-    if (!employeeId || !employeeNumber || !name) {
+    if (!employeeNumber) {
       const err = new AuthError("Token payload missing required fields");
       logger.warn(err.message, { payload });
       return sendError(res, err, err.statusCode);
     }
 
+    const employee = await findEmployeeByNumber(employeeNumber);
+    if (!employee) {
+      const err = new AuthError("Employee not found or inactive");
+      logger.warn(err.message, { employeeNumber });
+      return sendError(res, err, err.statusCode);
+    }
+
     req.user = {
-      employeeId,
-      employeeNumber,
-      name,
-      role,
+      employeeId: employee.EmployeeId,
+      employeeNumber: employee.EmployeeNumber,
+      name: `${employee.FirstName} ${employee.LastName}`,
+      email: employee.Email,
+      role: employee.Role || role || "EMPLOYEE",
     };
 
     logger.info("User authenticated", {
-      user: { employeeId, employeeNumber, name },
+      employeeNumber: employee.EmployeeNumber,
+      name: `${employee.FirstName} ${employee.LastName}`,
       ip: req.ip,
       path: req.originalUrl,
     });
 
-    return next();
+    next();
   } catch (err) {
     logger.error("Auth middleware error", {
       message: err.message,

@@ -1,35 +1,32 @@
 import {
   createException,
-  getFilteredExceptions,
-  updateException,
+  bulkUpdateExceptionRequestService,
+  getSelectedDatesByMonth,
 } from "../services/exceptionService.js";
+import {
+  getExceptionRequestsWithPaginationService,
+  getExceptionSummaryService,
+} from "../services/getExceptionService.js";
 import { findEmployeeByNumber } from "../services/employeeService.js";
 import logger from "../utils/logger.js";
 import { sendSuccess, sendError } from "../utils/responseHandler.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 import { sendMail } from "../utils/mailer.js";
+import { PermissionDeniedError } from "../errors/AuthError.js";
 export const createExceptionRequest = async (req, res) => {
   const employeeNumber = req.user?.employeeNumber;
-  const employeeId = req.user?.employeeId;
   const userInfo = req.user;
 
   try {
-    const { projectId, exceptions } = req.body;
+    const { exceptions } = req.body;
 
     logger.info("Create Exception Request initiated", {
       requestedBy: userInfo,
       body: req.body,
     });
 
-    if (!projectId || typeof projectId !== "number") {
-      throw new BadRequestError("projectId is required and must be a number");
-    }
-
-    if (!Array.isArray(exceptions) || exceptions.length === 0) {
-      throw new BadRequestError("exceptions must be a non-empty array");
-    }
-
+    //  Step 1: Fetch employee by employeeNumber
     const employee = await findEmployeeByNumber(employeeNumber);
     if (!employee) {
       throw new NotFoundError(
@@ -37,28 +34,43 @@ export const createExceptionRequest = async (req, res) => {
       );
     }
 
-    const saved = await createException({
+    const employeeId = employee.EmployeeId;
+    const managerId = employee.ManagerId;
+
+    //  Step 2: Validate `exceptions` array
+    if (!exceptions || !Array.isArray(exceptions) || exceptions.length === 0) {
+      throw new Error("At least one exception object is required");
+    }
+
+    const createdExceptions = [];
+
+    //  Step 3: Loop through each exception object
+    for (const ex of exceptions) {
+      const { selectedDate, primaryReason, remarks } = ex;
+
+      const saved = await createException({
+        selectedDate,
+        primaryReason,
+        remarks,
+        employeeId,
+        managerId,
+        updatedById: employeeId, // updatedBy = current employee
+        updatedByRole: "EMPLOYEE", // role fixed as EMPLOYEE,
+        currentStatus: "PENDING",
+      });
+      createdExceptions.push(saved);
+    }
+
+    logger.info("Exception requests created successfully", {
       employeeId,
-      projectId,
-      action: "CREATE",
-      managerId: employee.ManagerId,
-      exceptions: exceptions.map((ex) => ({
-        ...ex,
-        fromDate: new Date(ex.fromDate),
-        toDate: new Date(ex.toDate),
-      })),
+      managerId,
+      totalCreated: createdExceptions.length,
     });
 
-    logger.info("Exception created successfully", {
-      employeeId,
-      projectId,
-      managerId: employee.ManagerId,
-      exceptionId: saved.id,
-    });
-
+    //  Step 5: Send response
     return sendSuccess(res, {
-      saved,
-      message: "Exception created successfully",
+      message: "Exception requests created successfully",
+      data: createdExceptions,
     });
   } catch (error) {
     logger.error("Error in createExceptionRequest", {
@@ -69,116 +81,170 @@ export const createExceptionRequest = async (req, res) => {
     return sendError(res, error);
   }
 };
-
-export const updateExceptionRequests = async (req, res) => {
-  const id = req.params.id || req.query.id;
-  const updateData = req.body;
+export const bulkUpdateExceptionRequest = async (req, res) => {
+  const employeeId = req.user?.employeeId;
+  const updatedRole = req.user?.role;
   const userInfo = req.user;
 
   try {
-    logger.info("Update Exception Request initiated", {
+    const { ids, status } = req.body;
+
+    logger.info("Bulk Update Exception Request initiated", {
       requestedBy: userInfo,
-      exceptionId: id,
-      updateData,
+      body: req.body,
     });
-    if (!updateData?.updateDateRangeId) {
-      throw new BadRequestError(`updateDateRangeId is required`);
-    }
-    const validStatuses = ["APPROVED", "REJECTED", "PARTIALLY_APPROVED"];
-    if (
-      updateData.currentStatus &&
-      !validStatuses.includes(updateData.currentStatus)
-    ) {
-      throw new BadRequestError(
-        `currentStatus must be one of ${validStatuses.join(", ")}`
+    console.log("updatedRole", updatedRole !== "MANAGER", updatedRole !== "HR");
+    if (updatedRole !== "MANAGER" && updatedRole !== "HR") {
+      throw new PermissionDeniedError(
+        `You do not have permission to perform this action`
       );
     }
+    const updateResult = await bulkUpdateExceptionRequestService({
+      ids,
+      status,
+      employeeId,
+      updatedRole,
+    });
 
-    if (
-      updateData.managerRemarks &&
-      typeof updateData.managerRemarks !== "string"
-    ) {
-      throw new BadRequestError("managerRemarks must be a string");
-    }
-
-    const result = await updateException(
-      parseInt(id, 10),
-      updateData,
-      userInfo?.employeeId
-    );
-    const epmlyeeEmailResonse = await sendMail(
-      result?.employee?.Email,
-      "Work From Office Exception Request Update",
-      updateData.currentStatus,
-      { name: `${result?.employee?.FirstName} ${result?.employee?.LastName}` }
-    );
-    // logger.info("Employee email respose", { epmlyeeEmailResonse });
-    // const managerEmailResonse = await sendMail(
-    //   result?.manager?.Email,
-    //   "Work From Office Exception Request Update",
-    //   updateData.currentStatus,
-    //   { name: `${result?.employee?.FirstName} ${result?.employee?.LastName}` }
-    // );
-    // logger.info("Employee email respose", { managerEmailResonse });
-    // console.log(result?.employee?.Email);
-    // console.log(result?.manager?.Email);
-    logger.info("Exception updated successfully", {
-      updatedBy: userInfo,
-      exceptionId: id,
-      newStatus: updateData.currentStatus,
+    logger.info("Exceptions updated successfully", {
+      updatedIds: ids,
+      status,
     });
 
     return sendSuccess(res, {
-      result: {
-        ...result,
-        employee: {
-          name: `${result?.employee?.FirstName} ${result?.employee?.LastName}`,
-        },
-        manager: {
-          name: `${result?.employee?.FirstName} ${result?.employee.LastName}`,
-        },
-        project: { name: result?.project?.ProjectName },
-      },
-
-      message: "Exception request updated",
+      updateResult,
+      message: "Exceptions updated successfully",
     });
   } catch (error) {
-    logger.error("Error in updateExceptionRequests", {
+    logger.error("Error in bulkUpdateExceptionRequest", {
       error: error.message,
       stack: error.stack,
-      exceptionId: id,
       requestedBy: userInfo,
     });
     return sendError(res, error);
   }
 };
-
-export const getExceptionRequests = async (req, res) => {
-  const filters = req.query;
+export const getSelectionDatesForEmployee = async (req, res) => {
   const userInfo = req.user;
-  if (filters.isSelf === true || filters.isSelf === "true") {
-    userInfo.role = "EMPLOYEE";
-  }
-  // userInfo.role = "EMPLOYEE"; // TEMPORARY FIX FOR TESTING PURPOSES
   try {
-    logger.info("Get Exception Requests initiated", {
+    const { month, year } = req.body || req.query;
+    const employeeId = userInfo.employeeId;
+
+    logger.info("Get selection dates initiated", {
       requestedBy: userInfo,
-      filters,
+      body: req.body,
     });
 
-    const results = await getFilteredExceptions(filters, userInfo);
+    const dates = await getSelectedDatesByMonth(employeeId, month, year);
 
-    logger.info("Exception requests fetched", {
+    logger.info("Selected dates fetched successfully", {
       requestedBy: userInfo,
-      total: results.length,
+      dates,
     });
 
-    return sendSuccess(res, results);
+    return sendSuccess(res, {
+      dates,
+      message: "Selected dates fetched successfully",
+    });
+  } catch (err) {
+    logger.error("Error in getSelectionDatesForEmployee", {
+      error: err.message,
+      stack: err.stack,
+      requestedBy: req.user,
+    });
+    return sendError(res, err);
+  }
+};
+
+export const getExceptionRequestsWithPagination = async (req, res) => {
+  const {
+    page,
+    limit,
+    fromDate,
+    toDate,
+    employeeName,
+    managerName,
+    status,
+    reason,
+    exportAll,
+  } = req.query;
+
+  try {
+    const { data, total } = await getExceptionRequestsWithPaginationService({
+      user: req.user,
+      page,
+      limit,
+      fromDate,
+      toDate,
+      employeeName,
+      managerName,
+      status,
+      reason,
+      exportAll,
+    });
+
+    logger.info("Fetched exception requests", {
+      requestedBy: req.user,
+      count: data.length,
+      total,
+    });
+
+    return sendSuccess(res, {
+      message: "Exception requests fetched successfully",
+      data,
+      pagination: {
+        total,
+        currentPage: Number(page),
+        pageSize: Number(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
-    logger.error("Error in getExceptionRequests", {
+    logger.error("Error in getExceptionRequestsWithPagination", {
       error: error.message,
       stack: error.stack,
-      requestedBy: userInfo,
+      requestedBy: req.user,
+    });
+    return sendError(res, error);
+  }
+};
+
+export const getExceptionSummary = async (req, res) => {
+  const { role } = req.user;
+  const { fromDate, toDate, employeeName, managerName, status, reason } =
+    req.query;
+
+  try {
+    if (role !== "HR" && role !== "ADMIN") {
+      return sendError(res, {
+        message: "You are not authorized to access summary data",
+        statusCode: 403,
+      });
+    }
+
+    const summary = await getExceptionSummaryService({
+      fromDate,
+      toDate,
+      employeeName,
+      managerName,
+      status,
+      reason,
+    });
+
+    logger.info("Fetched exception summary", {
+      requestedBy: req.user,
+      summary,
+    });
+
+    return sendSuccess(res, {
+      message: "Summary data fetched successfully",
+      summary,
+    });
+  } catch (error) {
+    logger.error("Error in getExceptionSummary", {
+      error: error.message,
+      stack: error.stack,
+      requestedBy: req.user,
     });
     return sendError(res, error);
   }

@@ -19,20 +19,18 @@ const generateTokenFromSession = async (req, res) => {
   });
 
   try {
-    if (!sessionId) {
-      throw new BadRequestError("Missing sessionID in headers");
-    }
-
     const employeeNumber = await findSessionById(sessionId);
     if (!employeeNumber) {
-      throw new NotFoundError("Session not found or expired");
+      throw new NotFoundError(
+        `Session not found or expired sessionid:${sessionId}`
+      );
     }
 
     logger.info("Session found", { sessionId, employeeNumber });
 
     const employee = await findEmployeeByNumber(employeeNumber);
     if (!employee) {
-      throw new NotFoundError("Employee not found for session");
+      throw new NotFoundError(`Employee not found for session ${sessionId}`);
     }
 
     logger.info("Employee found", {
@@ -40,7 +38,7 @@ const generateTokenFromSession = async (req, res) => {
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
     });
-    const role = "EMPLOYEE"; //MANAGER | HR | ADMIN can be set based on your logic
+    const role = "MANAGER"; //MANAGER | HR | ADMIN can be set based on your logic
     const tokenPayload = {
       employeeId: employee.EmployeeId,
       employeeNumber: employee.EmployeeNumber,

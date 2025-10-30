@@ -1,9 +1,7 @@
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
-import ExceptionDateRange from "../entity/ExceptionDateRange.js";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 import Employee from "../entity/legacy/Employee.js";
-import ProjectAssignment from "../entity/legacy/ProjectAssignment.js";
 import UserSession from "../entity/legacy/UserSession.js";
 
 dotenv.config();
@@ -20,9 +18,7 @@ export const AppDataSource = new DataSource({
   logging: ["error"], // Enable query and error logging
   entities: [
     ExceptionRequest,
-    ExceptionDateRange,
     Employee,
-    ProjectAssignment,
     UserSession /* add other entities here */,
   ],
   options: {

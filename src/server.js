@@ -8,7 +8,7 @@ import { sendMail } from "./utils/mailer.js";
 // async function run() {
 //   console.log("hiiiiiiii");
 //   const success = await sendMail(
-//     "dhamendrak@contata.in",
+//     "dharmendrak@contata.in",
 //     "Test Email from Node.js",
 //     "APPROVED",
 //     { name: "Dharmendra Kumar" }
@@ -29,9 +29,9 @@ const PORT = process.env.PORT || 3000;
 AppDataSource.initialize()
   .then(() => {
     logger.info(" Database connected");
-    import("./crons/scheduler.js").then(() => {
-      logger.info(" Cron jobs initialized.");
-    });
+    // import("./crons/scheduler.js").then(() => {
+    //   logger.info(" Cron jobs initialized.");
+    // });
     app.listen(PORT, () => {
       logger.info(` Server running at http://localhost:${PORT}`);
     });

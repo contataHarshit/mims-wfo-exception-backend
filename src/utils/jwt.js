@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-default-secret";
 const DEFAULT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
 
 /**

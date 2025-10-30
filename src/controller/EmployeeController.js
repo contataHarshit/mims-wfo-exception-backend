@@ -3,10 +3,10 @@ import {
   findAllEmployees,
   findEmployeeByManagerId,
 } from "../services/employeeService.js";
-import { getProjectsByEmployeeId } from "../services/projectAssignmentService.js";
 import logger from "../utils/logger.js";
 import { sendSuccess, sendError } from "../utils/responseHandler.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
+import { PermissionDeniedError } from "../errors/AuthError.js";
 
 // Get currently logged-in employee
 export const getEmployee = async (req, res) => {
@@ -28,17 +28,12 @@ export const getEmployee = async (req, res) => {
       throw new NotFoundError(`Employee with ID "${employeeId}" not found`);
     }
 
-    const projects = await getProjectsByEmployeeId(String(employee.EmployeeId));
     const result = {
       employeeId: employee.EmployeeId,
       employeeName: [employee.FirstName, employee.MiddleName, employee.LastName]
         .filter(Boolean)
         .join(" "),
       managerName: null,
-      projects: projects.map((p) => ({
-        id: p.ProjectId,
-        name: p.ProjectName,
-      })),
     };
 
     if (employee?.ManagerId) {
@@ -78,6 +73,12 @@ export const getManagerEmployee = async (req, res) => {
   const userInfo = req.user || {};
 
   try {
+    if (userInfo.role !== "MANAGER") {
+      logger.warn("Unauthorized access to manager employees", {
+        user: userInfo,
+      });
+      throw new PermissionDeniedError("Unauthorized access");
+    }
     if (!managerId) {
       logger.warn("Missing managerId in req.user", { user: userInfo });
       throw new NotFoundError("Manager ID not found in request");
@@ -107,6 +108,12 @@ export const getAllEmployees = async (req, res) => {
   const userInfo = req.user || {};
 
   try {
+    if (userInfo.role !== "HR" && userInfo.role !== "ADMIN") {
+      logger.warn("Unauthorized access to all employees", {
+        user: userInfo,
+      });
+      throw new NotFoundError("Unauthorized access");
+    }
     const employees = await findAllEmployees();
 
     logger.info("Fetched all employees", {

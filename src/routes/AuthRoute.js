@@ -1,6 +1,7 @@
 // src/routes/exceptionRoutes.js
 import express from "express";
 import generateTokenFromSession from "../controller/AuthController.js";
+import { validateSessionRequest } from "../middleware/validate/session.validate.js";
 
 const router = express.Router();
 
@@ -55,5 +56,5 @@ const router = express.Router();
  *                 error:
  *                   type: string
  */
-router.post("/", generateTokenFromSession);
+router.post("/", validateSessionRequest, generateTokenFromSession);
 export default router;

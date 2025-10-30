@@ -19,7 +19,7 @@ export const sendMail = async (to, subject, templateKey, templateData) => {
       rejectUnauthorized: false, // <-- allow self-signed certs
     },
   });
-
+  console.log("transporter", transporter);
   try {
     const htmlContent = renderTemplate(templateKey, templateData);
     // Verify transporter (checks DNS, connection, authentication)
@@ -27,12 +27,12 @@ export const sendMail = async (to, subject, templateKey, templateData) => {
     // logger.info("SMTP server is ready to accept messages");
 
     const mailOptions = {
-      from: process.env.SMTP_EMAIL_SENDERs,
+      from: process.env.SMTP_EMAIL_SENDER,
       to,
       subject,
       html: htmlContent,
     };
-
+    console.log(mailOptions);
     const info = await transporter.sendMail(mailOptions);
     logger.info(`Mail sent, messageId: ${info.messageId} to: ${to}`);
     return true;
