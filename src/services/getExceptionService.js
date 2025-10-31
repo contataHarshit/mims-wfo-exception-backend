@@ -1,4 +1,5 @@
 import { AppDataSource } from "../config/data-source.js";
+import { Between, ILike } from "typeorm";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 
 const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
@@ -6,39 +7,61 @@ const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
 /**
  * Build dynamic filters for TypeORM queries based on role and parameters.
  */
-const buildFilters = ({
+export const buildFilters = ({
   role,
   employeeId,
   fromDate,
   toDate,
-  employeeName,
-  managerName,
+  employeeNumber,
+  managerEmployeeNumber,
   status,
   reason,
 }) => {
   const filters = {};
 
-  // Date range filter
+  // 🔹 Date range filter (selectedDate)
   if (fromDate && toDate) {
     filters.selectedDate = Between(new Date(fromDate), new Date(toDate));
   }
 
-  // Status filter
-  if (status) filters.currentStatus = status;
+  // 🔹 Status filter
+  if (status) {
+    filters.currentStatus = status;
+  }
 
-  // Role-based filters
+  // 🔹 Reason filter (applies to all roles)
+  if (reason) {
+    filters.primaryReason = ILike(`%${reason}%`);
+  }
+
+  // 🔹 Role-based filters
   if (role === "EMPLOYEE") {
+    // Employee: Only their own exceptions
     filters.employee = { EmployeeId: employeeId };
+
+    // Optional filters for their own requests
+    if (employeeNumber)
+      filters.employee.EmployeeNumber = ILike(`%${employeeNumber}%`);
   } else if (role === "MANAGER") {
-    filters.manager = { EmployeeId: employeeId };
-    if (employeeName)
-      filters.employee = { FirstName: ILike(`%${employeeName}%`) };
-    if (reason) filters.primaryReason = ILike(`%${reason}%`);
+    /**
+     * Manager: See all requests of employees who report to them
+     * (employee.ManagerId = manager's EmployeeId)
+     */
+    filters.employee = { ManagerId: employeeId };
+
+    // Optional: Filter by employee number (if manager searches within their team)
+    if (employeeNumber) {
+      filters.employee.EmployeeNumber = ILike(`%${employeeNumber}%`);
+    }
   } else if (role === "HR" || role === "ADMIN") {
-    if (employeeName)
-      filters.employee = { FirstName: ILike(`%${employeeName}%`) };
-    if (managerName) filters.manager = { FirstName: ILike(`%${managerName}%`) };
-    if (reason) filters.primaryReason = ILike(`%${reason}%`);
+    // HR/Admin: Can filter by employee or manager employee numbers
+    if (employeeNumber) {
+      filters.employee = { EmployeeNumber: ILike(`%${employeeNumber}%`) };
+    }
+
+    if (managerEmployeeNumber) {
+      filters.manager = { EmployeeNumber: ILike(`%${managerEmployeeNumber}%`) };
+    }
   }
 
   return filters;
@@ -53,8 +76,8 @@ export const getExceptionRequestsWithPaginationService = async ({
   limit = 10,
   fromDate,
   toDate,
-  employeeName,
-  managerName,
+  managerEmployeeNumber,
+  employeeNumber,
   status,
   reason,
   exportAll,
@@ -64,8 +87,8 @@ export const getExceptionRequestsWithPaginationService = async ({
     employeeId: user.employeeId,
     fromDate,
     toDate,
-    employeeName,
-    managerName,
+    employeeNumber,
+    managerEmployeeNumber,
     status,
     reason,
   });
@@ -76,7 +99,7 @@ export const getExceptionRequestsWithPaginationService = async ({
     .leftJoinAndSelect("exception.manager", "manager")
     .leftJoinAndSelect("exception.updatedBy", "updatedBy")
     .where(filters)
-    .orderBy("exception.selectedDate", "DESC");
+    .orderBy("exception.submissionDate", "DESC");
 
   let data, total;
 
@@ -90,44 +113,6 @@ export const getExceptionRequestsWithPaginationService = async ({
       .getMany();
     total = await queryBuilder.getCount();
   }
-
+  console.log("Filters applied:", filters);
   return { data, total };
-};
-
-/**
- * 🔹 Get Exception Summary (HR / ADMIN)
- */
-export const getExceptionSummaryService = async ({
-  fromDate,
-  toDate,
-  employeeName,
-  managerName,
-  status,
-  reason,
-}) => {
-  const filters = {};
-
-  if (fromDate && toDate) {
-    filters.selectedDate = Between(new Date(fromDate), new Date(toDate));
-  }
-  if (status) filters.currentStatus = status;
-  if (employeeName)
-    filters.employee = { FirstName: ILike(`%${employeeName}%`) };
-  if (managerName) filters.manager = { FirstName: ILike(`%${managerName}%`) };
-  if (reason) filters.primaryReason = ILike(`%${reason}%`);
-
-  const queryBuilder = exceptionRepo
-    .createQueryBuilder("exception")
-    .leftJoinAndSelect("exception.employee", "employee")
-    .leftJoinAndSelect("exception.manager", "manager")
-    .where(filters);
-
-  const all = await queryBuilder.getMany();
-
-  return {
-    APPROVED: all.filter((x) => x.currentStatus === "APPROVED").length,
-    REJECTED: all.filter((x) => x.currentStatus === "REJECTED").length,
-    PENDING: all.filter((x) => x.currentStatus === "PENDING").length,
-    TOTAL: all.length,
-  };
 };

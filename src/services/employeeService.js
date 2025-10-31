@@ -1,5 +1,5 @@
 import { AppDataSource } from "../config/data-source.js";
-import { formatEmployeeList } from "../utils/employeeUtils.js";
+import { formatEmployeeList } from "../utils/sanitizedUtils.js";
 import Employee from "../entity/legacy/Employee.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 
@@ -31,24 +31,39 @@ export const findEmployeeById = async (employeeId) => {
   return employee;
 };
 
-export const findEmployeeByManagerId = async (managerId) => {
-  const employees = await employeeRepo.find({
+export const findEmployeeByManagerId = async (
+  managerId,
+  page = 1,
+  limit = 10
+) => {
+  const offset = (page - 1) * limit;
+
+  const [employees, total] = await employeeRepo.findAndCount({
     where: { ManagerId: parseInt(managerId, 10) },
+    skip: offset,
+    take: parseInt(limit, 10),
+    order: { EmployeeId: "ASC" },
   });
 
   if (!employees || employees.length === 0) {
     throw new NotFoundError(`No employees found for manager ID "${managerId}"`);
   }
 
-  return formatEmployeeList(employees);
+  return { employees: formatEmployeeList(employees), total };
 };
 
-export const findAllEmployees = async () => {
-  const employees = await employeeRepo.find();
+export const findAllEmployees = async (page = 1, limit = 10) => {
+  const offset = (page - 1) * limit;
+
+  const [employees, total] = await employeeRepo.findAndCount({
+    skip: offset,
+    take: parseInt(limit, 10),
+    order: { EmployeeId: "ASC" },
+  });
 
   if (!employees || employees.length === 0) {
     throw new NotFoundError(`No employees found`);
   }
 
-  return formatEmployeeList(employees);
+  return { employees: formatEmployeeList(employees), total };
 };

@@ -1,12 +1,12 @@
 import { AppDataSource } from "../config/data-source.js";
+import { In } from "typeorm";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
 
 export const createException = async (data) => {
-  console.log(data, "dataaaaaaaaa");
   const {
-    employeeId,
-    managerId,
+    employee,
+    manager,
     selectedDate,
     primaryReason,
     remarks,
@@ -16,8 +16,8 @@ export const createException = async (data) => {
   } = data;
 
   const exception = exceptionRepo.create({
-    employee: { EmployeeId: employeeId },
-    manager: { EmployeeId: managerId },
+    employee: employee,
+    manager: manager,
     selectedDate,
     primaryReason,
     remarks,
@@ -49,7 +49,7 @@ export const bulkUpdateExceptionRequestService = async ({
   // 2 Fetch the updated records
   const updatedRecords = await exceptionRepo.find({
     where: {
-      id: ids,
+      id: In(ids),
     },
   });
   return updatedRecords;

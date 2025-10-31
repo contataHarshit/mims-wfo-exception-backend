@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export const sendMail = async (to, subject, templateKey, templateData) => {
+export const sendMail = async (to, cc, templateKey, templateData) => {
   // Create transporter
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -19,9 +19,8 @@ export const sendMail = async (to, subject, templateKey, templateData) => {
       rejectUnauthorized: false, // <-- allow self-signed certs
     },
   });
-  console.log("transporter", transporter);
   try {
-    const htmlContent = renderTemplate(templateKey, templateData);
+    const { subject, body } = renderTemplate(templateKey, templateData);
     // Verify transporter (checks DNS, connection, authentication)
     await transporter.verify();
     // logger.info("SMTP server is ready to accept messages");
@@ -29,8 +28,9 @@ export const sendMail = async (to, subject, templateKey, templateData) => {
     const mailOptions = {
       from: process.env.SMTP_EMAIL_SENDER,
       to,
+      cc: [cc, process.env.HR_EMAIL],
       subject,
-      html: htmlContent,
+      html: body,
     };
     console.log(mailOptions);
     const info = await transporter.sendMail(mailOptions);

@@ -71,6 +71,7 @@ export const getEmployee = async (req, res) => {
 export const getManagerEmployee = async (req, res) => {
   const managerId = req.user?.employeeId;
   const userInfo = req.user || {};
+  const { page = 1, limit = 10 } = req.query; // default values
 
   try {
     if (userInfo.role !== "MANAGER") {
@@ -84,15 +85,21 @@ export const getManagerEmployee = async (req, res) => {
       throw new NotFoundError("Manager ID not found in request");
     }
 
-    const employees = await findEmployeeByManagerId(managerId);
+    const { employees, total } = await findEmployeeByManagerId(
+      managerId,
+      page,
+      limit
+    );
 
     logger.info("Fetched employees under manager", {
       managerId,
       employeeCount: employees.length,
       requestedBy: userInfo,
+      page,
+      limit,
     });
 
-    return sendSuccess(res, { employees });
+    return sendSuccess(res, { employees, total, page, limit });
   } catch (error) {
     logger.error("Error in getManagerEmployee", {
       error: error.message,
@@ -103,25 +110,28 @@ export const getManagerEmployee = async (req, res) => {
   }
 };
 
-// Get all employees
+// Get all employees with pagination
 export const getAllEmployees = async (req, res) => {
   const userInfo = req.user || {};
+  const { page = 1, limit = 10 } = req.query; // default pagination values
 
   try {
     if (userInfo.role !== "HR" && userInfo.role !== "ADMIN") {
-      logger.warn("Unauthorized access to all employees", {
-        user: userInfo,
-      });
-      throw new NotFoundError("Unauthorized access");
+      logger.warn("Unauthorized access to all employees", { user: userInfo });
+      throw new PermissionDeniedError("Unauthorized access");
     }
-    const employees = await findAllEmployees();
+
+    const { employees, total } = await findAllEmployees(page, limit);
 
     logger.info("Fetched all employees", {
       employeeCount: employees.length,
+      totalEmployees: total,
       requestedBy: userInfo,
+      page,
+      limit,
     });
 
-    return sendSuccess(res, { employees });
+    return sendSuccess(res, { employees, total, page, limit });
   } catch (error) {
     logger.error("Error in getAllEmployees", {
       error: error.message,

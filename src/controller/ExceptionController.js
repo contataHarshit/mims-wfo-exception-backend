@@ -3,17 +3,19 @@ import {
   bulkUpdateExceptionRequestService,
   getSelectedDatesByMonth,
 } from "../services/exceptionService.js";
+import { getExceptionRequestsWithPaginationService } from "../services/getExceptionService.js";
+import { getExceptionSummaryService } from "../services/getExceptionSummaryService.js";
 import {
-  getExceptionRequestsWithPaginationService,
-  getExceptionSummaryService,
-} from "../services/getExceptionService.js";
-import { findEmployeeByNumber } from "../services/employeeService.js";
+  findEmployeeById,
+  findEmployeeByNumber,
+} from "../services/employeeService.js";
 import logger from "../utils/logger.js";
 import { sendSuccess, sendError } from "../utils/responseHandler.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
-import { BadRequestError } from "../errors/BadRequestError.js";
 import { sendMail } from "../utils/mailer.js";
 import { PermissionDeniedError } from "../errors/AuthError.js";
+import { sanitizeExceptionRequests } from "../utils/sanitizedUtils.js";
+import { exceptions } from "winston";
 export const createExceptionRequest = async (req, res) => {
   const employeeNumber = req.user?.employeeNumber;
   const userInfo = req.user;
@@ -33,7 +35,12 @@ export const createExceptionRequest = async (req, res) => {
         `Employee with number "${employeeNumber}" not found`
       );
     }
-
+    const manager = await findEmployeeById(employee.ManagerId);
+    if (!manager) {
+      throw new NotFoundError(
+        `Manager with id "${employee.ManagerId}" not found`
+      );
+    }
     const employeeId = employee.EmployeeId;
     const managerId = employee.ManagerId;
 
@@ -52,15 +59,32 @@ export const createExceptionRequest = async (req, res) => {
         selectedDate,
         primaryReason,
         remarks,
-        employeeId,
-        managerId,
-        updatedById: employeeId, // updatedBy = current employee
+        employee,
+        manager,
+        updatedById: employee, // updatedBy = current employee
         updatedByRole: "EMPLOYEE", // role fixed as EMPLOYEE,
         currentStatus: "PENDING",
       });
       createdExceptions.push(saved);
     }
-
+    // const allDates = createdExceptions.map((ex) => ex.selectedDate);
+    // const formattedDates = allDates.map((d) => `<li>${d}</li>`).join("");
+    // const emailSent = await sendMail(
+    //   employee?.Email,
+    //   manager?.Email,
+    //   "PENDING",
+    //   {
+    //     name: employee?.FirstName + " " + employee?.LastName,
+    //     reviewerName: manager?.FirstName + " " + manager?.LastName,
+    //     role: userInfo?.role,
+    //     dates: formattedDates,
+    //   }
+    // );
+    // if (emailSent) {
+    //   logger.info(
+    //     `Notification email sent to manager ${manager.Email} for employee ${employee.Email}`
+    //   );
+    // }
     logger.info("Exception requests created successfully", {
       employeeId,
       managerId,
@@ -70,7 +94,7 @@ export const createExceptionRequest = async (req, res) => {
     //  Step 5: Send response
     return sendSuccess(res, {
       message: "Exception requests created successfully",
-      data: createdExceptions,
+      exceptions: sanitizeExceptionRequests(createdExceptions),
     });
   } catch (error) {
     logger.error("Error in createExceptionRequest", {
@@ -105,6 +129,48 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
       employeeId,
       updatedRole,
     });
+    // Assuming `updateResult` is your data array
+    const groupedByEmployee = {};
+
+    // Step 1: Group by employee email
+    updateResult.forEach((ex) => {
+      const empEmail = ex.employee.Email;
+      if (!groupedByEmployee[empEmail]) {
+        groupedByEmployee[empEmail] = {
+          employee: ex.employee,
+          manager: ex.manager,
+          dates: [],
+        };
+      }
+      groupedByEmployee[empEmail].dates.push(ex.selectedDate);
+    });
+
+    // Step 2: Send email to each employee and their manager
+    // for (const empEmail in groupedByEmployee) {
+    //   const { employee, manager, dates } = groupedByEmployee[empEmail];
+
+    //   // Format dates as list items
+    //   const formattedDates = dates.map((d) => `<li>${d}</li>`).join("");
+
+    //   // Send email
+    //   const emailSent = await sendMail(
+    //     employee.Email, // Employee email
+    //     manager.Email, // Manager email
+    //     status,
+    //     {
+    //       name: `${employee.FirstName} ${employee.LastName}`,
+    //       reviewerName: `${manager.FirstName} ${manager.LastName}`,
+    //       role: userInfo?.role,
+    //       dates: formattedDates,
+    //     }
+    //   );
+
+    //   if (emailSent) {
+    //     logger.info(
+    //       `Notification email sent to ${employee.Email} and manager ${manager.Email}`
+    //     );
+    //   }
+    // }
 
     logger.info("Exceptions updated successfully", {
       updatedIds: ids,
@@ -112,7 +178,7 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
     });
 
     return sendSuccess(res, {
-      updateResult,
+      exceptions: sanitizeExceptionRequests(updateResult),
       message: "Exceptions updated successfully",
     });
   } catch (error) {
@@ -157,18 +223,22 @@ export const getSelectionDatesForEmployee = async (req, res) => {
 };
 
 export const getExceptionRequestsWithPagination = async (req, res) => {
-  const {
+  let {
     page,
     limit,
     fromDate,
     toDate,
-    employeeName,
-    managerName,
+    employeeNumber,
+    managerEmployeeNumber,
     status,
     reason,
     exportAll,
+    isSelf,
   } = req.query;
-
+  if (isSelf === "true") {
+    employeeNumber = req.user.employeeNumber;
+    req.user.role = "EMPLOYEE";
+  }
   try {
     const { data, total } = await getExceptionRequestsWithPaginationService({
       user: req.user,
@@ -176,8 +246,8 @@ export const getExceptionRequestsWithPagination = async (req, res) => {
       limit,
       fromDate,
       toDate,
-      employeeName,
-      managerName,
+      employeeNumber,
+      managerEmployeeNumber,
       status,
       reason,
       exportAll,
@@ -191,7 +261,7 @@ export const getExceptionRequestsWithPagination = async (req, res) => {
 
     return sendSuccess(res, {
       message: "Exception requests fetched successfully",
-      data,
+      exceptions: sanitizeExceptionRequests(data),
       pagination: {
         total,
         currentPage: Number(page),
@@ -210,11 +280,10 @@ export const getExceptionRequestsWithPagination = async (req, res) => {
 };
 
 export const getExceptionSummary = async (req, res) => {
-  const { role } = req.user;
-  const { fromDate, toDate, employeeName, managerName, status, reason } =
-    req.query;
-
   try {
+    let { role } = req.user;
+    role = "HR";
+    // Only HR/Admin allowed
     if (role !== "HR" && role !== "ADMIN") {
       return sendError(res, {
         message: "You are not authorized to access summary data",
@@ -222,13 +291,28 @@ export const getExceptionSummary = async (req, res) => {
       });
     }
 
+    // Extract query parameters
+    const {
+      fromDate,
+      toDate,
+      employeeNumber,
+      managerEmployeeNumber,
+      reason,
+      filterType = "ALL", // default to ALL if missing
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    // Call the service
     const summary = await getExceptionSummaryService({
       fromDate,
       toDate,
-      employeeName,
-      managerName,
-      status,
+      employeeNumber,
+      managerEmployeeNumber,
       reason,
+      filterType,
+      page: parseInt(page),
+      limit: parseInt(limit),
     });
 
     logger.info("Fetched exception summary", {
@@ -238,7 +322,7 @@ export const getExceptionSummary = async (req, res) => {
 
     return sendSuccess(res, {
       message: "Summary data fetched successfully",
-      summary,
+      exceptions: summary,
     });
   } catch (error) {
     logger.error("Error in getExceptionSummary", {

@@ -54,11 +54,6 @@ app.use(morgan("combined", { stream: morganStream }));
 app.use(requestLogger);
 
 // Routes
-// app.use("/api/auth", AuthRoutes);
-
-// app.use("/api/exception-requests", ExceptionRequestRoutes);
-// app.use("/api/employee", EmployeeRoutes);
-
 // Swagger documentation setup
 app.use("/api-docs", swaggerUi.serve);
 app.use("/api-docs", swaggerUi.setup(swaggerSpec));
