@@ -3,7 +3,10 @@ import dotenv from "dotenv";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 import Employee from "../entity/legacy/Employee.js";
 import UserSession from "../entity/legacy/UserSession.js";
-
+import AspnetRoles from "../entity/legacy/aspnet_Roles.js";
+import AspnetUsers from "../entity/legacy/aspnet_Users.js";
+import AspnetUsersInRoles from "../entity/legacy/aspnet_UsersInRoles.js";
+import UsersInFunctions from "../entity/legacy/UsersInFunctions.js";
 dotenv.config();
 
 export const AppDataSource = new DataSource({
@@ -13,14 +16,19 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  synchronize: true,
+  synchronize: false,
   debug: true,
   logging: ["error"], // Enable query and error logging
   entities: [
     ExceptionRequest,
     Employee,
-    UserSession /* add other entities here */,
+    UserSession,
+    AspnetRoles,
+    AspnetUsers,
+    AspnetUsersInRoles,
+    UsersInFunctions /* add other entities here */,
   ],
+  migrations: ["./src/migration/*.js"], // note the "./" at the start
   options: {
     encrypt: true, // required for Azure; usually safe to leave true
     trustServerCertificate: true, // allow self-signed certs (for local dev)

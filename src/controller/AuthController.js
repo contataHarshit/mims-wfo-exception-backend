@@ -6,6 +6,7 @@ import { NotFoundError } from "../errors/NotFoundError.js";
 import { BadRequestError } from "../errors/BadRequestError.js";
 import { sendSuccess, sendError } from "../utils/responseHandler.js";
 import { redact } from "../utils/redactUtils.js";
+import { getUserRoleByWindowsName } from "../services/userService.js";
 
 const generateTokenFromSession = async (req, res) => {
   const sessionId = req.headers["sessionid"];
@@ -38,7 +39,7 @@ const generateTokenFromSession = async (req, res) => {
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
     });
-    const role = "MANAGER"; //MANAGER | HR | ADMIN can be set based on your logic
+    const { role } = await getUserRoleByWindowsName(employee?.WindowsName);
     const tokenPayload = {
       employeeId: employee.EmployeeId,
       employeeNumber: employee.EmployeeNumber,

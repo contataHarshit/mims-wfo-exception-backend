@@ -4,6 +4,7 @@ import { EntitySchema } from "typeorm";
 const UserSession = new EntitySchema({
   name: "UserSession",
   tableName: "UserSessions",
+  synchronize: false, // read-only, TypeORM won't try to create/alter
   columns: {
     ClientConnId: {
       type: "nvarchar",

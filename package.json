@@ -7,7 +7,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "migration:generate": "npx typeorm migration:generate ./src/migration/CreateExceptionRequestTable --dataSource ./src/config/data-source.js --outputJs --esm",
+    "migration:run": "npx typeorm migration:run -d ./src/config/data-source.js",
+    "migration:revert": "npx typeorm migration:revert -d ./src/config/data-source.js"
   },
   "keywords": [],
   "author": "",
@@ -24,10 +27,10 @@
     "reflect-metadata": "^0.2.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.6.3",
-    "typeorm": "^0.3.27",
     "winston": "^3.18.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "typeorm": "^0.3.27"
   }
 }
