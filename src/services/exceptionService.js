@@ -1,6 +1,7 @@
 import { AppDataSource } from "../config/data-source.js";
 import { In } from "typeorm";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
+import logger from "../utils/logger.js";
 const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
 
 export const createException = async (data) => {
@@ -28,6 +29,40 @@ export const createException = async (data) => {
 
   return await exceptionRepo.save(exception);
 };
+export async function deleteExceptionById(exceptionId, employeeId) {
+  const exception = await exceptionRepo.findOne({
+    where: { id: exceptionId },
+    relations: ["employee"],
+  });
+
+  if (!exception) {
+    logger.warn(`Attempted to delete non-existent exception ID ${exceptionId}`);
+    return null; // Let controller handle not-found logic
+  }
+
+  const isOwner = exception.employee?.EmployeeId === employeeId;
+  if (!isOwner) {
+    logger.warn(
+      `Unauthorized delete attempt by Employee ${employeeId} on Exception ${exceptionId}`
+    );
+    return { unauthorized: true };
+  }
+  if (exception.currentStatus.toUpperCase() !== "PENDING") {
+    logger.warn(
+      `Attempt to delete non-pending exception (status: ${exception.currentStatus}) by Employee ${employeeId}`
+    );
+    return { invalidStatus: true, status: exception.currentStatus };
+  }
+  await exceptionRepo.remove(exception);
+
+  logger.info("Exception request deleted successfully", {
+    exceptionId,
+    deletedBy: employeeId,
+  });
+
+  return { deleted: exception };
+}
+
 export const bulkUpdateExceptionRequestService = async ({
   ids,
   status,

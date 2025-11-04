@@ -2,6 +2,7 @@ import {
   createException,
   bulkUpdateExceptionRequestService,
   getSelectedDatesByMonth,
+  deleteExceptionById,
 } from "../services/exceptionService.js";
 import { getExceptionRequestsWithPaginationService } from "../services/getExceptionService.js";
 import { getExceptionSummaryService } from "../services/getExceptionSummaryService.js";
@@ -12,10 +13,10 @@ import {
 import logger from "../utils/logger.js";
 import { sendSuccess, sendError } from "../utils/responseHandler.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
+import { BadRequestError } from "../errors/BadRequestError.js";
 import { sendMail } from "../utils/mailer.js";
 import { PermissionDeniedError } from "../errors/AuthError.js";
 import { sanitizeExceptionRequests } from "../utils/sanitizedUtils.js";
-import { exceptions } from "winston";
 export const createExceptionRequest = async (req, res) => {
   const employeeNumber = req.user?.employeeNumber;
   const userInfo = req.user;
@@ -100,6 +101,65 @@ export const createExceptionRequest = async (req, res) => {
     logger.error("Error in createExceptionRequest", {
       error: error.message,
       stack: error.stack,
+      requestedBy: userInfo,
+    });
+    return sendError(res, error);
+  }
+};
+export const deleteExceptionRequest = async (req, res) => {
+  const userInfo = req.user;
+  const employeeNumber = userInfo?.employeeNumber;
+  const id = req.params.id; // already converted by validator (.toInt)
+
+  try {
+    logger.info("Delete Exception Request initiated", {
+      exceptionId: id,
+      requestedBy: userInfo,
+    });
+
+    const employee = await findEmployeeByNumber(employeeNumber);
+    if (!employee) {
+      throw new NotFoundError(
+        `Employee with number "${employeeNumber}" not found`
+      );
+    }
+
+    const result = await deleteExceptionById(id, employee.EmployeeId);
+
+    if (!result) {
+      throw new NotFoundError(`Exception request with ID ${id} not found`);
+    }
+
+    if (result.unauthorized) {
+      throw new BadRequestError(
+        "You do not have permission to perform this action"
+      );
+    }
+
+    if (result.invalidStatus) {
+      throw new BadRequestError(
+        `Only PENDING exceptions can be deleted (current status: ${result.status})`
+      );
+    }
+
+    logger.info("Exception request deleted successfully", {
+      exceptionId: id,
+      deletedBy: employee.EmployeeId,
+    });
+
+    return sendSuccess(res, {
+      message: `Exception request with ID ${id} deleted successfully`,
+      deletedRequest: {
+        id: result.deleted.id,
+        selectedDate: result.deleted.selectedDate,
+        primaryReason: result.deleted.primaryReason,
+      },
+    });
+  } catch (error) {
+    logger.error("Error deleting exception request", {
+      error: error.message,
+      stack: error.stack,
+      exceptionId: id,
       requestedBy: userInfo,
     });
     return sendError(res, error);

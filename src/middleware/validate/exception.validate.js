@@ -1,4 +1,4 @@
-import { body, query } from "express-validator";
+import { body, query, param } from "express-validator";
 
 export const validateCreateExceptionRequest = [
   //  Ensure `exceptions` is a non-empty array
@@ -123,4 +123,13 @@ export const validateSummaryRequest = [
     .isIn(["PENDING", "APPROVED", "REJECTED"])
     .withMessage("Invalid status"),
   query("reason").optional().isString().withMessage("reason must be a string"),
+];
+export const validateDeleteExceptionRequest = [
+  param("id")
+    .exists()
+    .withMessage("Exception request ID is required")
+    .bail()
+    .isInt({ gt: 0 })
+    .withMessage("Exception request ID must be a positive integer")
+    .toInt(), // ✅ Automatically converts to integer
 ];

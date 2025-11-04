@@ -7,6 +7,7 @@ import {
   getSelectionDatesForEmployee,
   getExceptionSummary,
   getExceptionRequestsWithPagination,
+  deleteExceptionRequest,
 } from "../controller/ExceptionController.js";
 
 import {
@@ -15,6 +16,7 @@ import {
   validateGetSelectionDates,
   validateSummaryRequest,
   validateGetExceptionRequests,
+  validateDeleteExceptionRequest,
 } from "../middleware/validate/exception.validate.js";
 
 import { checkValidation } from "../middleware/validate/validateResult.js";
@@ -331,6 +333,68 @@ router.get(
   validateSummaryRequest,
   checkValidation,
   getExceptionSummary
+);
+/**
+ * @swagger
+ * /api/exception-requests/{id}:
+ *   delete:
+ *     summary: Delete an exception request (Employee only)
+ *     description:
+ *       Allows an employee to delete an exception request they created.
+ *       Authentication via Bearer token is required.
+ *       Only the employee who created the request can delete it.
+ *     tags:
+ *       - Exceptions
+ *     security:
+ *       - bearerAuth: []   # 🔒 Auth header required
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID of the exception request to delete
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Exception request deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Exception request with ID 12 deleted successfully
+ *                     deletedRequest:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 12
+ *                         selectedDate:
+ *                           type: string
+ *                           format: date
+ *                           example: 2025-10-15
+ *                         primaryReason:
+ *                           type: string
+ *                           example: System error
+ *       400:
+ *         description: Bad Request – Invalid ID or unauthorized deletion attempt
+ *       404:
+ *         description: Not Found – Exception request or employee not found
+ *       500:
+ *         description: Internal Server Error
+ */
+router.delete(
+  "/:id",
+  validateDeleteExceptionRequest,
+  checkValidation,
+  deleteExceptionRequest
 );
 
 export default router;
