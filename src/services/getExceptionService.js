@@ -47,7 +47,7 @@ export const buildFilters = ({
      * Manager: See all requests of employees who report to them
      * (employee.ManagerId = manager's EmployeeId)
      */
-    filters.employee = { ManagerId: employeeId };
+    filters.manager = { EmployeeId: employeeId };
 
     // Optional: Filter by employee number (if manager searches within their team)
     if (employeeNumber) {
@@ -98,6 +98,7 @@ export const getExceptionRequestsWithPaginationService = async ({
     .leftJoinAndSelect("exception.employee", "employee")
     .leftJoinAndSelect("exception.manager", "manager")
     .leftJoinAndSelect("exception.updatedBy", "updatedBy")
+    .leftJoinAndSelect("employee.currentDesignation", "currentDesignation") // <-- join designation
     .where(filters)
     .orderBy("exception.submissionDate", "DESC");
 

@@ -10,9 +10,11 @@ export const formatEmployeeList = (employees) => {
 export const sanitizeExceptionRequests = (leaveRequests) => {
   return leaveRequests.map((request) => {
     const { employee, manager, updatedBy, ...rest } = request;
+    // console.log("Sanitizing request:", manager);
 
     return {
       ...rest,
+      designation: employee?.currentDesignation?.Name || null,
       employeeNumber: employee ? employee?.EmployeeNumber : null, // optional — or hide completely
       employee: employee
         ? `${employee?.FirstName || ""} ${employee?.LastName || ""}`.trim()

@@ -43,7 +43,7 @@ const generateTokenFromSession = async (req, res) => {
       employee?.WindowsName
     );
     const tokenPayload = {
-      // employeeId: employee.EmployeeId,
+      employeeId: employee.EmployeeId,
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
       role,
@@ -61,7 +61,7 @@ const generateTokenFromSession = async (req, res) => {
       message: "Authentication successful",
       token,
       employee: {
-        // employeeId: employee.EmployeeId,
+        employeeId: employee.EmployeeId,
         employeeNumber: employee.EmployeeNumber,
         name: `${employee.FirstName} ${employee.LastName}`,
         email: employee.Email,

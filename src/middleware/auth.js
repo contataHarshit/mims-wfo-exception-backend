@@ -8,7 +8,11 @@ export default async function authMiddleware(req, res, next) {
   try {
     const authHeader = req.get("Authorization") || req.get("authorization");
     let token = null;
-
+    if (!authHeader) {
+      const err = new AuthError("Token payload missing required fields");
+      logger.warn(err.message);
+      return sendError(res, err, err.statusCode);
+    }
     // Extract Bearer token (we can safely assume this will exist)
     const parts = authHeader.split(" ");
     if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
