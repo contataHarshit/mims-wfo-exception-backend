@@ -39,12 +39,15 @@ const generateTokenFromSession = async (req, res) => {
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
     });
-    const { role } = await getUserRoleByWindowsName(employee?.WindowsName);
+    const { role, department } = await getUserRoleByWindowsName(
+      employee?.WindowsName
+    );
     const tokenPayload = {
-      employeeId: employee.EmployeeId,
+      // employeeId: employee.EmployeeId,
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
       role,
+      department,
     };
 
     const token = generateJwtToken(tokenPayload);
@@ -58,11 +61,12 @@ const generateTokenFromSession = async (req, res) => {
       message: "Authentication successful",
       token,
       employee: {
-        employeeId: employee.EmployeeId,
+        // employeeId: employee.EmployeeId,
         employeeNumber: employee.EmployeeNumber,
         name: `${employee.FirstName} ${employee.LastName}`,
         email: employee.Email,
         role,
+        department,
       },
     });
   } catch (err) {

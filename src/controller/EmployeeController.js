@@ -2,6 +2,7 @@ import {
   findEmployeeById,
   findAllEmployees,
   findEmployeeByManagerId,
+  findAllManagers,
 } from "../services/employeeService.js";
 import logger from "../utils/logger.js";
 import { sendSuccess, sendError } from "../utils/responseHandler.js";
@@ -134,6 +135,37 @@ export const getAllEmployees = async (req, res) => {
     return sendSuccess(res, { employees, total, page, limit });
   } catch (error) {
     logger.error("Error in getAllEmployees", {
+      error: error.message,
+      stack: error.stack,
+      requestedBy: userInfo,
+    });
+    return sendError(res, error);
+  }
+};
+export const getAllManagers = async (req, res) => {
+  const userInfo = req.user || {};
+  const { page = 1, limit = 10 } = req.query;
+
+  try {
+    // Restrict access to HR or ADMIN
+    if (userInfo.role !== "HR" && userInfo.role !== "ADMIN") {
+      logger.warn("Unauthorized access to manager list", { user: userInfo });
+      throw new PermissionDeniedError("Unauthorized access");
+    }
+
+    const { managers, total } = await findAllManagers(page, limit);
+
+    logger.info("Fetched all managers", {
+      managerCount: managers.length,
+      totalManagers: total,
+      requestedBy: userInfo,
+      page,
+      limit,
+    });
+
+    return sendSuccess(res, { managers, total, page, limit });
+  } catch (error) {
+    logger.error("Error in getAllManagers", {
       error: error.message,
       stack: error.stack,
       requestedBy: userInfo,

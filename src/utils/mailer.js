@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export const sendMail = async (to, cc, templateKey, templateData) => {
+export const sendMail = async (to, templateKey, templateData, cc) => {
   // Create transporter
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -28,10 +28,15 @@ export const sendMail = async (to, cc, templateKey, templateData) => {
     const mailOptions = {
       from: process.env.SMTP_EMAIL_SENDER,
       to,
-      cc: [cc, process.env.HR_EMAIL],
       subject,
       html: body,
     };
+    if (cc) {
+      mailOptions.cc = [cc];
+      if (templateKey === "APPROVED") {
+        mailOptions.cc.push(process.env.ADMIN_EMAIL);
+      }
+    }
     console.log(mailOptions);
     const info = await transporter.sendMail(mailOptions);
     logger.info(`Mail sent, messageId: ${info.messageId} to: ${to}`);

@@ -1,5 +1,5 @@
 import { EntitySchema } from "typeorm";
-
+import Designation from "./Designation.js";
 const Employee = new EntitySchema({
   name: "Employee",
   tableName: "Employee",
@@ -92,6 +92,18 @@ const Employee = new EntitySchema({
     EmployeeLocationId: { type: "bigint", nullable: true },
     CurrentProbationDate: { type: "datetime", nullable: true },
     ConfirmedProbationDate: { type: "datetime", nullable: true },
+  },
+  relations: {
+    currentDesignation: {
+      type: "many-to-one",
+      target: "Designation",
+
+      joinColumn: {
+        name: "CurrentDesignationId",
+        referencedColumnName: "DesignationId",
+      },
+      nullable: true,
+    },
   },
 });
 

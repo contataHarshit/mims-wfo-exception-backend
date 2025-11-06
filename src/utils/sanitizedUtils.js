@@ -4,6 +4,7 @@ export const formatEmployeeList = (employees) => {
   return employees.map((emp) => ({
     EmployeeNumber: emp.EmployeeNumber,
     FullName: `${emp.FirstName} ${emp.LastName}`,
+    designation: emp?.currentDesignation?.Name || null,
   }));
 };
 export const sanitizeExceptionRequests = (leaveRequests) => {

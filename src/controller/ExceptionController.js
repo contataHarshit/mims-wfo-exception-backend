@@ -72,14 +72,14 @@ export const createExceptionRequest = async (req, res) => {
     // const formattedDates = allDates.map((d) => `<li>${d}</li>`).join("");
     // const emailSent = await sendMail(
     //   employee?.Email,
-    //   manager?.Email,
     //   "PENDING",
     //   {
     //     name: employee?.FirstName + " " + employee?.LastName,
     //     reviewerName: manager?.FirstName + " " + manager?.LastName,
     //     role: userInfo?.role,
     //     dates: formattedDates,
-    //   }
+    //   },
+    //   manager?.Email
     // );
     // if (emailSent) {
     //   logger.info(
@@ -206,31 +206,31 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
     });
 
     // Step 2: Send email to each employee and their manager
-    // for (const empEmail in groupedByEmployee) {
-    //   const { employee, manager, dates } = groupedByEmployee[empEmail];
+    for (const empEmail in groupedByEmployee) {
+      const { employee, manager, dates } = groupedByEmployee[empEmail];
 
-    //   // Format dates as list items
-    //   const formattedDates = dates.map((d) => `<li>${d}</li>`).join("");
+      // Format dates as list items
+      const formattedDates = dates.map((d) => `<li>${d}</li>`).join("");
 
-    //   // Send email
-    //   const emailSent = await sendMail(
-    //     employee.Email, // Employee email
-    //     manager.Email, // Manager email
-    //     status,
-    //     {
-    //       name: `${employee.FirstName} ${employee.LastName}`,
-    //       reviewerName: `${manager.FirstName} ${manager.LastName}`,
-    //       role: userInfo?.role,
-    //       dates: formattedDates,
-    //     }
-    //   );
+      // Send email
+      const emailSent = await sendMail(
+        employee?.Email, // Employee email
+        status,
+        {
+          name: `${employee?.FirstName} ${employee?.LastName}`,
+          reviewerName: `${manager?.FirstName} ${manager?.LastName}`,
+          role: userInfo?.role,
+          dates: formattedDates,
+        },
+        manager?.Email
+      );
 
-    //   if (emailSent) {
-    //     logger.info(
-    //       `Notification email sent to ${employee.Email} and manager ${manager.Email}`
-    //     );
-    //   }
-    // }
+      if (emailSent) {
+        logger.info(
+          `Notification email sent to ${employee.Email} and manager ${manager.Email}`
+        );
+      }
+    }
 
     logger.info("Exceptions updated successfully", {
       updatedIds: ids,

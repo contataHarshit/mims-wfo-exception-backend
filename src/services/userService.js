@@ -41,7 +41,7 @@ export const getUserRoleByWindowsName = async (windowsName) => {
 
   // 4️⃣ Apply logic
   if (primaryRole === "ADMIN") {
-    return { role: "ADMIN" };
+    return { role: "ADMIN", department: "MANAGMENT" };
   }
 
   if (primaryRole === "MANAGER") {
@@ -51,12 +51,12 @@ export const getUserRoleByWindowsName = async (windowsName) => {
     });
 
     if (userFunctions && userFunctions.length > 0) {
-      return { role: "HR" };
+      return { role: "HR", department: "HR" };
     } else {
-      return { role: "MANAGER" };
+      return { role: "MANAGER", department: "IT" };
     }
   }
 
   // 5️⃣ Default role for others
-  return { role: "EMPLOYEE" };
+  return { role: "EMPLOYEE", department: "IT" };
 };

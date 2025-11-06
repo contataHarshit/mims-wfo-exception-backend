@@ -1,9 +1,9 @@
-// src/routes/employeeRoutes.js
 import express from "express";
 import {
   getEmployee,
   getManagerEmployee,
   getAllEmployees,
+  getAllManagers,
 } from "../controller/EmployeeController.js";
 
 const router = express.Router();
@@ -162,6 +162,70 @@ const router = express.Router();
  *                       type: integer
  *                       example: 10
  *
+ * /api/employee/managers/list:
+ *   get:
+ *     summary: Get all managers
+ *     description: Only accessible by HR or Admin users. Returns a paginated list of all managers. Authentication via Bearer token is required.
+ *     tags:
+ *       - Employee
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *         description: Number of managers per page
+ *     responses:
+ *       200:
+ *         description: Paginated list of all managers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     managers:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           EmployeeId:
+ *                             type: integer
+ *                             example: 101
+ *                           FullName:
+ *                             type: string
+ *                             example: "Ravi Sharma"
+ *                           Email:
+ *                             type: string
+ *                             example: "ravi.sharma@company.com"
+ *                           IsActive:
+ *                             type: boolean
+ *                             example: true
+ *                     total:
+ *                       type: integer
+ *                       example: 15
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *
  * components:
  *   securitySchemes:
  *     bearerAuth:
@@ -173,4 +237,6 @@ const router = express.Router();
 router.get("/", getEmployee);
 router.get("/manager", getManagerEmployee);
 router.get("/all", getAllEmployees);
+router.get("/managers/list", getAllManagers);
+
 export default router;

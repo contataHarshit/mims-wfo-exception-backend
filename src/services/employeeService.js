@@ -67,3 +67,17 @@ export const findAllEmployees = async (page = 1, limit = 10) => {
 
   return { employees: formatEmployeeList(employees), total };
 };
+
+export const findAllManagers = async (page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+
+  const [managers, total] = await employeeRepo.findAndCount({
+    where: { IsMentor: true }, // or adapt to your schema (e.g. role field)
+    relations: ["currentDesignation"],
+    order: { FirstName: "ASC" },
+    skip,
+    take: limit,
+  });
+
+  return { managers: formatEmployeeList(managers), total };
+};
