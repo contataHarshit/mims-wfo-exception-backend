@@ -22,11 +22,13 @@ const ExceptionRequest = new EntitySchema({
       nullable: false,
     },
     primaryReason: {
-      type: "text",
+      type: "varchar",
+      length: "max",
       nullable: false,
     },
     remarks: {
-      type: "text",
+      type: "varchar",
+      length: "max",
       nullable: false,
     },
     currentStatus: {
@@ -45,13 +47,11 @@ const ExceptionRequest = new EntitySchema({
     employee: {
       type: "many-to-one",
       target: "Employee",
-      eager: true,
       joinColumn: true,
     },
     manager: {
       type: "many-to-one",
       target: "Employee",
-      eager: true,
       joinColumn: {
         name: "managerId",
       },
@@ -60,7 +60,6 @@ const ExceptionRequest = new EntitySchema({
     updatedBy: {
       type: "many-to-one",
       target: "Employee",
-      eager: true,
       joinColumn: {
         name: "updatedById",
       },

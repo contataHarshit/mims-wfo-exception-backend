@@ -179,6 +179,10 @@ router.put(
  *         name: isSelf
  *         schema:
  *           type: boolean
+ *       - in: query
+ *         name: all
+ *         schema:
+ *           type: boolean
  *     responses:
  *       200:
  *         description: Exception requests fetched successfully

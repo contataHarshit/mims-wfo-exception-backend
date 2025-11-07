@@ -40,8 +40,8 @@ export const findEmployeeByManagerId = async (
 
   const [employees, total] = await employeeRepo.findAndCount({
     where: { ManagerId: parseInt(managerId, 10) },
-    skip: offset,
-    take: parseInt(limit, 10),
+    // skip: offset,
+    // take: parseInt(limit, 10),
     order: { EmployeeId: "ASC" },
   });
 
@@ -56,8 +56,8 @@ export const findAllEmployees = async (page = 1, limit = 10) => {
   const offset = (page - 1) * limit;
 
   const [employees, total] = await employeeRepo.findAndCount({
-    skip: offset,
-    take: parseInt(limit, 10),
+    // skip: offset,
+    // take: parseInt(limit, 10),
     order: { EmployeeId: "ASC" },
   });
 
@@ -75,8 +75,8 @@ export const findAllManagers = async (page = 1, limit = 10) => {
     where: { IsMentor: true }, // or adapt to your schema (e.g. role field)
     relations: ["currentDesignation"],
     order: { FirstName: "ASC" },
-    skip,
-    take: limit,
+    // skip,
+    // take: limit,
   });
 
   return { managers: formatEmployeeList(managers), total };

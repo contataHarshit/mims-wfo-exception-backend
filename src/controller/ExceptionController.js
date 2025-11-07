@@ -294,10 +294,14 @@ export const getExceptionRequestsWithPagination = async (req, res) => {
     reason,
     exportAll,
     isSelf,
+    all = false,
   } = req.query;
   if (isSelf === "true") {
     employeeNumber = req.user.employeeNumber;
     req.user.role = "EMPLOYEE";
+  }
+  if (all === "true" && (req.user.role === "HR" || req.user.role === "ADMIN")) {
+    req.user.role = "ADMIN";
   }
   try {
     const { data, total } = await getExceptionRequestsWithPaginationService({
@@ -341,29 +345,26 @@ export const getExceptionRequestsWithPagination = async (req, res) => {
 
 export const getExceptionSummary = async (req, res) => {
   try {
-    let { role } = req.user;
-    role = "HR";
-    // Only HR/Admin allowed
+    const { role } = req.user;
+
     if (role !== "HR" && role !== "ADMIN") {
       return sendError(res, {
-        message: "You are not authorized to access summary data",
+        message: "Unauthorized access",
         statusCode: 403,
       });
     }
 
-    // Extract query parameters
     const {
       fromDate,
       toDate,
       employeeNumber,
       managerEmployeeNumber,
       reason,
-      filterType = "ALL", // default to ALL if missing
+      filterType,
       page = 1,
       limit = 10,
     } = req.query;
 
-    // Call the service
     const summary = await getExceptionSummaryService({
       fromDate,
       toDate,
@@ -375,13 +376,8 @@ export const getExceptionSummary = async (req, res) => {
       limit: parseInt(limit),
     });
 
-    logger.info("Fetched exception summary", {
-      requestedBy: req.user,
-      summary,
-    });
-
     return sendSuccess(res, {
-      message: "Summary data fetched successfully",
+      message: "Summary fetched successfully",
       exceptions: summary,
     });
   } catch (error) {

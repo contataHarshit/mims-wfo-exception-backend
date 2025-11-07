@@ -100,7 +100,7 @@ export const getManagerEmployee = async (req, res) => {
       limit,
     });
 
-    return sendSuccess(res, { employees, total, page, limit });
+    return sendSuccess(res, { employees, total });
   } catch (error) {
     logger.error("Error in getManagerEmployee", {
       error: error.message,
@@ -132,7 +132,7 @@ export const getAllEmployees = async (req, res) => {
       limit,
     });
 
-    return sendSuccess(res, { employees, total, page, limit });
+    return sendSuccess(res, { employees, total });
   } catch (error) {
     logger.error("Error in getAllEmployees", {
       error: error.message,
@@ -159,11 +159,11 @@ export const getAllManagers = async (req, res) => {
       managerCount: managers.length,
       totalManagers: total,
       requestedBy: userInfo,
-      page,
-      limit,
+      // page,
+      // limit,
     });
 
-    return sendSuccess(res, { managers, total, page, limit });
+    return sendSuccess(res, { managers, total });
   } catch (error) {
     logger.error("Error in getAllManagers", {
       error: error.message,

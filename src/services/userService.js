@@ -51,12 +51,17 @@ export const getUserRoleByWindowsName = async (windowsName) => {
     });
 
     if (userFunctions && userFunctions.length > 0) {
-      return { role: "HR", department: "HR" };
+      return { role: "MANAGER", department: "HR" };
     } else {
       return { role: "MANAGER", department: "IT" };
     }
   }
-
+  const userFunctionsForAllHR = await usersInFunctionsRepository.find({
+    where: { UserId: userId, FunctionId: 1 },
+  });
+  if (userFunctionsForAllHR && userFunctionsForAllHR.length > 0) {
+    return { role: "HR", department: "HR" };
+  }
   // 5️⃣ Default role for others
   return { role: "EMPLOYEE", department: "IT" };
 };
