@@ -5,7 +5,7 @@ const Designation = new EntitySchema({
   name: "Designation",
   tableName: "Designation",
   schema: "dbo",
-  database: "MIMSER",
+  database: "MIMSTEST",
   synchronize: false, // Prevent TypeORM from altering legacy schema
   columns: {
     DesignationId: {

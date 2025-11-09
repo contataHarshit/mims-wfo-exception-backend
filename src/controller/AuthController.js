@@ -39,9 +39,11 @@ const generateTokenFromSession = async (req, res) => {
       employeeNumber: employee.EmployeeNumber,
       name: `${employee.FirstName} ${employee.LastName}`,
     });
-    const { role, department } = await getUserRoleByWindowsName(
-      employee?.WindowsName
-    );
+    const role= "HR"
+    const department="MANAGEMENT"
+    // const { role, department } = await getUserRoleByWindowsName(
+    //   employee?.WindowsName
+    // );
     const tokenPayload = {
       // employeeId: employee.EmployeeId,
       employeeNumber: employee.EmployeeNumber,

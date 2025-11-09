@@ -5,7 +5,7 @@ const AspnetUsers = new EntitySchema({
   name: "aspnet_Users",
   tableName: "aspnet_Users",
   schema: "dbo",
-  database: "MIMSER",
+  database: "MIMSTEST",
   synchronize: false, // read-only, TypeORM won't try to create/alter
   columns: {
     ApplicationId: {

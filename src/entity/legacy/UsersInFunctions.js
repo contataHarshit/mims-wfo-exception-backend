@@ -5,7 +5,7 @@ const UsersInFunctions = new EntitySchema({
   name: "UsersInFunctions",
   tableName: "UsersInFunctions",
   schema: "dbo",
-  database: "MIMSER",
+  database: "MIMSTEST",
   synchronize: false, // read-only, TypeORM won't try to create/alter
   columns: {
     UsersInFunctionsId: {
