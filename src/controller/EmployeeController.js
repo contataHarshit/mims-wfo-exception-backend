@@ -30,7 +30,7 @@ export const getEmployee = async (req, res) => {
     }
 
     const result = {
-      employeeId: employee.EmployeeId,
+      employeeNumber: employee.EmployeeNumber,
       employeeName: [employee.FirstName, employee.MiddleName, employee.LastName]
         .filter(Boolean)
         .join(" "),
@@ -41,7 +41,7 @@ export const getEmployee = async (req, res) => {
       const manager = await findEmployeeById(employee.ManagerId);
       if (manager) {
         result.managerName = {
-          EmployeeId: manager.EmployeeId,
+          employeeNumber: manager.EmployeeNumber,
           name: `${manager.FirstName} ${manager.LastName}`,
         };
       } else {
@@ -117,7 +117,7 @@ export const getAllEmployees = async (req, res) => {
   const { page = 1, limit = 10 } = req.query; // default pagination values
 
   try {
-    if (userInfo.role !== "HR" && userInfo.role !== "ADMIN") {
+    if (userInfo.department !== "HR" && userInfo.role !== "ADMIN") {
       logger.warn("Unauthorized access to all employees", { user: userInfo });
       throw new PermissionDeniedError("Unauthorized access");
     }
@@ -148,11 +148,10 @@ export const getAllManagers = async (req, res) => {
 
   try {
     // Restrict access to HR or ADMIN
-    if (userInfo.role !== "HR" && userInfo.role !== "ADMIN") {
+    if (userInfo.role !== "ADMIN" && userInfo.department !== "HR") {
       logger.warn("Unauthorized access to manager list", { user: userInfo });
       throw new PermissionDeniedError("Unauthorized access");
     }
-
     const { managers, total } = await findAllManagers(page, limit);
 
     logger.info("Fetched all managers", {

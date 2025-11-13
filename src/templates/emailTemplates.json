@@ -2,7 +2,7 @@
   {
     "templateName": "PENDING",
     "subject": "Your request is pending review",
-    "body": "<h2>Hi {{name}},</h2><p>Your request for the following dates is pending review:</p><ul>{{dates}}</ul><p>We’ll notify you once {{reviewerName}} ({{role}}) has completed the review.</p>"
+    "body": "<h2>Hi {{name}},</h2><p>Employee ${{employeeName}} requested WFH for the following dates are </p><ul>{{dates}}</ul>"
   },
   {
     "templateName": "APPROVED",
@@ -13,5 +13,10 @@
     "templateName": "REJECTED",
     "subject": "Your request has been rejected",
     "body": "<h2>Hi {{name}},</h2><p>We’re sorry to inform you that your request for the following dates has been rejected:</p><ul>{{dates}}</ul><p>Reviewed by: <strong>{{reviewerName}}</strong> ({{role}})</p>"
+  },
+  {
+    "templateName": "CANCELED",
+    "subject": "Your request has been cancel",
+    "body": "<h2>Hi {{name}},</h2><p>We’re here to inform you that your request for the following dates has been cancel"
   }
 ]

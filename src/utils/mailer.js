@@ -38,8 +38,8 @@ export const sendMail = async (to, templateKey, templateData, cc) => {
       }
     }
     console.log(mailOptions);
-    const info = await transporter.sendMail(mailOptions);
-    logger.info(`Mail sent, messageId: ${info.messageId} to: ${to}`);
+    // const info = await transporter.sendMail(mailOptions);
+    // logger.info(`Mail sent, messageId: ${info.messageId} to: ${to}`);
     return true;
   } catch (error) {
     logger.error("Error sending email:", error);

@@ -50,11 +50,12 @@ export default async function authMiddleware(req, res, next) {
     }
 
     req.user = {
-      employeeId: employee.EmployeeId,
-      employeeNumber: employee.EmployeeNumber,
-      name: `${employee.FirstName} ${employee.LastName}`,
-      email: employee.Email,
-      role: employee.Role || role || "EMPLOYEE",
+      employeeId: employee?.EmployeeId,
+      employeeNumber: employee?.EmployeeNumber,
+      name: `${employee?.FirstName} ${employee?.LastName}`,
+      email: employee?.Email,
+      role: role || "EMPLOYEE",
+      department: payload.department || "IT",
     };
 
     logger.info("User authenticated", {

@@ -1,16 +1,18 @@
 import { EntitySchema } from "typeorm";
 import Designation from "./Designation.js";
+import dotenv from "dotenv";
+dotenv.config();
 const Employee = new EntitySchema({
   name: "Employee",
   tableName: "Employee",
   schema: "dbo",
-  database: "MIMSER",
+  database: process.env.DB_NAME,
   synchronize: false, // read-only, TypeORM won't try to create/alter
   columns: {
     EmployeeId: {
       primary: true,
       type: "bigint",
-      generated: false,
+      generated: "increment",
     },
     EmployeeNumber: { type: "varchar", length: 50, nullable: true },
     EmployeeTypeId: { type: "bigint", nullable: true },

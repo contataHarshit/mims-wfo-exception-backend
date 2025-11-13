@@ -68,24 +68,24 @@ export const createExceptionRequest = async (req, res) => {
       });
       createdExceptions.push(saved);
     }
-    // const allDates = createdExceptions.map((ex) => ex.selectedDate);
-    // const formattedDates = allDates.map((d) => `<li>${d}</li>`).join("");
-    // const emailSent = await sendMail(
-    //   employee?.Email,
-    //   "PENDING",
-    //   {
-    //     name: employee?.FirstName + " " + employee?.LastName,
-    //     reviewerName: manager?.FirstName + " " + manager?.LastName,
-    //     role: userInfo?.role,
-    //     dates: formattedDates,
-    //   },
-    //   manager?.Email
-    // );
-    // if (emailSent) {
-    //   logger.info(
-    //     `Notification email sent to manager ${manager.Email} for employee ${employee.Email}`
-    //   );
-    // }
+    const allDates = createdExceptions.map((ex) => ex.selectedDate);
+    const formattedDates = allDates.map((d) => `<li>${d}</li>`).join("");
+    const emailSent = await sendMail(
+      manager?.Email,
+      "PENDING",
+      {
+        name: manager?.FirstName + " " + manager?.LastName,
+        employeeName: req?.user?.name,
+        // role: userInfo?.role,
+        dates: formattedDates,
+      },
+      employee?.Email
+    );
+    if (emailSent) {
+      logger.info(
+        `Notification email sent to manager ${manager?.Email} for employee ${employee?.Email}`
+      );
+    }
     logger.info("Exception requests created successfully", {
       employeeId,
       managerId,
@@ -141,7 +141,22 @@ export const deleteExceptionRequest = async (req, res) => {
         `Only PENDING exceptions can be deleted (current status: ${result.status})`
       );
     }
-
+    const emailSent = await sendMail(
+      result?.employee?.Email,
+      "CANCELED",
+      {
+        name: result?.employee?.FirstName + " " + result?.employee?.LastName,
+        // reviewerName: manager?.FirstName + " " + manager?.LastName,
+        // role: userInfo?.role,
+        dates: result.selectedDate,
+      },
+      result?.manager?.Email
+    );
+    if (emailSent) {
+      logger.info(
+        `Notification email sent to manager ${result?.manager?.Email} for employee ${employee?.Email}`
+      );
+    }
     logger.info("Exception request deleted successfully", {
       exceptionId: id,
       deletedBy: employee.EmployeeId,
@@ -168,37 +183,52 @@ export const deleteExceptionRequest = async (req, res) => {
 export const bulkUpdateExceptionRequest = async (req, res) => {
   const employeeId = req.user?.employeeId;
   const updatedRole = req.user?.role;
+  const department = req.user?.department;
   const userInfo = req.user;
 
   try {
-    const { ids, status } = req.body;
+    const { ids, status, remarks } = req.body;
 
     logger.info("Bulk Update Exception Request initiated", {
       requestedBy: userInfo,
       body: req.body,
     });
-    console.log("updatedRole", updatedRole !== "MANAGER", updatedRole !== "HR");
-    if (updatedRole !== "MANAGER" && updatedRole !== "HR") {
+    if (
+      updatedRole !== "MANAGER" &&
+      department !== "HR" &&
+      updatedRole !== "ADMIN"
+    ) {
       throw new PermissionDeniedError(
         `You do not have permission to perform this action`
       );
     }
-    const updateResult = await bulkUpdateExceptionRequestService({
+    const updatedPayload = {
       ids,
       status,
-      employeeId,
       updatedRole,
-    });
+      remarks,
+    };
+    // Add conditional fields based on status
+    if (status === "APPROVED") {
+      updatedPayload.approvedBy = req?.user?.name;
+    }
+
+    if (status === "REJECTED") {
+      updatedPayload.rejectedBy = req?.user?.name;
+    }
+    const updateResult = await bulkUpdateExceptionRequestService(
+      updatedPayload
+    );
     // Assuming `updateResult` is your data array
     const groupedByEmployee = {};
 
     // Step 1: Group by employee email
-    updateResult.forEach((ex) => {
-      const empEmail = ex.employee.Email;
+    updateResult?.forEach((ex) => {
+      const empEmail = ex?.employee?.Email;
       if (!groupedByEmployee[empEmail]) {
         groupedByEmployee[empEmail] = {
-          employee: ex.employee,
-          manager: ex.manager,
+          employee: ex?.employee,
+          manager: ex?.manager,
           dates: [],
         };
       }
@@ -208,26 +238,31 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
     // Step 2: Send email to each employee and their manager
     for (const empEmail in groupedByEmployee) {
       const { employee, manager, dates } = groupedByEmployee[empEmail];
-
+      let emailSentTo = employee?.Email;
+      let ccTO = [manager?.Email];
+      if (status === "APPROVED") {
+        const hrgroupEmail = process.env.HR_EMAIL;
+        if (req.user.email !== manager?.Email)
+          ccTO = [...ccTO, req.user.email, hrgroupEmail];
+      }
       // Format dates as list items
       const formattedDates = dates.map((d) => `<li>${d}</li>`).join("");
 
       // Send email
       const emailSent = await sendMail(
-        employee?.Email, // Employee email
-        status,
+        emailSentTo, // Employee email
+        status === "APPROVED" ? "APPROVED" : "REJECTED",
         {
           name: `${employee?.FirstName} ${employee?.LastName}`,
-          reviewerName: `${manager?.FirstName} ${manager?.LastName}`,
-          role: userInfo?.role,
+          reviewerName: req?.user?.name,
           dates: formattedDates,
         },
-        manager?.Email
+        req?.user?.email
       );
 
       if (emailSent) {
         logger.info(
-          `Notification email sent to ${employee.Email} and manager ${manager.Email}`
+          `Notification email sent to ${employee?.Email} and manager ${manager?.Email} status:${status} updatedby:${req.user.email}`
         );
       }
     }
@@ -294,13 +329,16 @@ export const getExceptionRequestsWithPagination = async (req, res) => {
     reason,
     exportAll,
     isSelf,
-    all = false,
+    isAll = true,
   } = req.query;
   if (isSelf === "true") {
     employeeNumber = req.user.employeeNumber;
     req.user.role = "EMPLOYEE";
   }
-  if (all === "true" && (req.user.role === "HR" || req.user.role === "ADMIN")) {
+  if (
+    isAll === "true" &&
+    (req.user.department === "HR" || req.user.role === "ADMIN")
+  ) {
     req.user.role = "ADMIN";
   }
   try {
@@ -345,9 +383,9 @@ export const getExceptionRequestsWithPagination = async (req, res) => {
 
 export const getExceptionSummary = async (req, res) => {
   try {
-    const { role } = req.user;
+    const { role, department } = req.user;
 
-    if (role !== "HR" && role !== "ADMIN") {
+    if (department !== "HR" && role !== "ADMIN") {
       return sendError(res, {
         message: "Unauthorized access",
         statusCode: 403,

@@ -12,7 +12,6 @@ export const formatEmployeeList = (employees) => {
 export const sanitizeExceptionRequests = (leaveRequests) => {
   return leaveRequests.map((request) => {
     const { employee, manager, updatedBy, ...rest } = request;
-    // console.log("Sanitizing request:", manager);
 
     return {
       ...rest,

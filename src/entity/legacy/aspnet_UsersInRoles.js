@@ -1,11 +1,12 @@
 // src/entity/aspnet_UsersInRoles.js
 import { EntitySchema } from "typeorm";
-
+import dotenv from "dotenv";
+dotenv.config();
 const AspnetUsersInRoles = new EntitySchema({
   name: "aspnet_UsersInRoles",
   tableName: "aspnet_UsersInRoles",
   schema: "dbo",
-  database: "MIMSER",
+  database: process.env.DB_NAME,
   synchronize: false, // read-only, TypeORM won't try to create/alter
   columns: {
     UserId: {

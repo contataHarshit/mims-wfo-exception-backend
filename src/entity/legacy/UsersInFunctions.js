@@ -1,11 +1,12 @@
 // src/entity/UsersInFunctions.js
 import { EntitySchema } from "typeorm";
-
+import dotenv from "dotenv";
+dotenv.config();
 const UsersInFunctions = new EntitySchema({
   name: "UsersInFunctions",
   tableName: "UsersInFunctions",
   schema: "dbo",
-  database: "MIMSER",
+  database: process.env.DB_NAME,
   synchronize: false, // read-only, TypeORM won't try to create/alter
   columns: {
     UsersInFunctionsId: {

@@ -3,6 +3,7 @@ import { EntitySchema } from "typeorm";
 const ExceptionRequest = new EntitySchema({
   name: "ExceptionRequest",
   tableName: "ExceptionRequests",
+  schema: "dbo",
   columns: {
     id: {
       primary: true,
@@ -42,18 +43,41 @@ const ExceptionRequest = new EntitySchema({
       length: 100,
       nullable: true,
     },
+    approvedBy: {
+      type: "varchar",
+      length: "max",
+      nullable: true,
+    },
+    reviewRemarks: {
+      type: "varchar",
+      length: "max",
+      nullable: true,
+    },
+    rejectedBy: {
+      type: "varchar",
+      length: "max",
+      nullable: true,
+    },
+    EmployeeId: { type: "bigint", nullable: true },
+    ManagerId: { type: "bigint", nullable: true },
+    UpdatedById: { type: "bigint", nullable: true },
   },
   relations: {
     employee: {
       type: "many-to-one",
       target: "Employee",
-      joinColumn: true,
+      joinColumn: {
+        name: "EmployeeId", // ✅ correct FK name
+        referencedColumnName: "EmployeeId",
+      },
+      nullable: true,
     },
     manager: {
       type: "many-to-one",
       target: "Employee",
       joinColumn: {
-        name: "managerId",
+        name: "ManagerId",
+        referencedColumnName: "EmployeeId",
       },
       nullable: true,
     },
@@ -61,7 +85,8 @@ const ExceptionRequest = new EntitySchema({
       type: "many-to-one",
       target: "Employee",
       joinColumn: {
-        name: "updatedById",
+        name: "UpdatedById",
+        referencedColumnName: "EmployeeId",
       },
       nullable: true,
     },

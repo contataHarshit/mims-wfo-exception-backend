@@ -60,7 +60,7 @@ export const getUserRoleByWindowsName = async (windowsName) => {
     where: { UserId: userId, FunctionId: 1 },
   });
   if (userFunctionsForAllHR && userFunctionsForAllHR.length > 0) {
-    return { role: "HR", department: "HR" };
+    return { role: "EMPLOYEE", department: "HR" };
   }
   // 5️⃣ Default role for others
   return { role: "EMPLOYEE", department: "IT" };

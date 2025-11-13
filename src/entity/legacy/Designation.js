@@ -1,11 +1,12 @@
 // src/entities/Designation.js
 import { EntitySchema } from "typeorm";
-
+import dotenv from "dotenv";
+dotenv.config();
 const Designation = new EntitySchema({
   name: "Designation",
   tableName: "Designation",
   schema: "dbo",
-  database: "MIMSER",
+  database: process.env.DB_NAME,
   synchronize: false, // Prevent TypeORM from altering legacy schema
   columns: {
     DesignationId: {

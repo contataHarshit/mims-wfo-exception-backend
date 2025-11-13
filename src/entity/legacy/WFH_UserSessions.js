@@ -1,9 +1,9 @@
 // src/entity/UserSession.js
 import { EntitySchema } from "typeorm";
 
-const UserSession = new EntitySchema({
-  name: "UserSession",
-  tableName: "UserSessions",
+const WFH_UserSessions = new EntitySchema({
+  name: "WFH_UserSessions",
+  tableName: "WFH_UserSessions",
   synchronize: false, // read-only, TypeORM won't try to create/alter
   columns: {
     ClientConnId: {
@@ -23,4 +23,4 @@ const UserSession = new EntitySchema({
   },
 });
 
-export default UserSession;
+export default WFH_UserSessions;

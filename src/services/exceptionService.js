@@ -2,6 +2,7 @@ import { AppDataSource } from "../config/data-source.js";
 import { In } from "typeorm";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 import logger from "../utils/logger.js";
+import { getHolidayList } from "./HolidayListService.js";
 const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
 
 export const createException = async (data) => {
@@ -69,25 +70,30 @@ export const bulkUpdateExceptionRequestService = async ({
   status,
   employeeId,
   updatedRole,
+  approvedBy,
+  rejectedBy,
+  remarks,
 }) => {
   // 1️ Perform the update
-  await exceptionRepo
+  const result = await exceptionRepo
     .createQueryBuilder()
     .update(ExceptionRequest)
     .set({
       currentStatus: status,
       updatedBy: employeeId,
       updatedByRole: updatedRole,
+      reviewRemarks: remarks,
+      ...(status === "APPROVED" && { approvedBy }),
+      ...(status === "REJECTED" && { rejectedBy }),
     })
     .whereInIds(ids)
+    .andWhere("currentStatus != :status", { status })
+    .returning(["id"])
     .execute();
 
   // 2 Fetch the updated records
-  const updatedRecords = await exceptionRepo.find({
-    where: {
-      id: In(ids),
-    },
-  });
+  const updatedIds = result.raw.map((r) => r.id);
+  const updatedRecords = await exceptionRepo.findBy({ id: In(updatedIds) });
   return updatedRecords;
 };
 
@@ -100,13 +106,17 @@ export const getSelectedDatesByMonth = async (employeeId, month, year) => {
   const records = await exceptionRepo
     .createQueryBuilder("exception")
     .select("exception.selectedDate")
-    .where("exception.employeeEmployeeId = :employeeId", { employeeId })
+    .where("exception.EmployeeId = :employeeId", { employeeId })
     .andWhere("exception.selectedDate BETWEEN :startDate AND :endDate", {
       startDate,
       endDate,
     })
     .orderBy("exception.selectedDate", "ASC")
     .getRawMany();
-
-  return records.map((r) => r.exception_selectedDate);
+  const allHolidaysList = await getHolidayList();
+  const exceptionDates = records.map((r) => r.exception_selectedDate);
+  const combinedDates = Array.from(
+    new Set([...allHolidaysList, ...exceptionDates])
+  );
+  return combinedDates;
 };

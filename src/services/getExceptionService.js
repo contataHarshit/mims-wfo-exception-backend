@@ -114,6 +114,5 @@ export const getExceptionRequestsWithPaginationService = async ({
       .getMany();
     total = await queryBuilder.getCount();
   }
-  console.log("Filters applied:", filters);
   return { data, total };
 };
