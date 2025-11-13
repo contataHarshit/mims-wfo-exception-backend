@@ -3,8 +3,12 @@ import { In } from "typeorm";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 import logger from "../utils/logger.js";
 import { getHolidayList } from "./HolidayListService.js";
+
 const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
 
+/**
+ * Create new exception
+ */
 export const createException = async (data) => {
   const {
     employee,
@@ -17,9 +21,9 @@ export const createException = async (data) => {
     currentStatus,
   } = data;
 
-  const exception = exceptionRepo.create({
-    employee: employee,
-    manager: manager,
+  const exception = {
+    employee,
+    manager,
     selectedDate,
     primaryReason,
     remarks,
@@ -27,19 +31,43 @@ export const createException = async (data) => {
     updatedByRole,
     currentStatus,
     submissionDate: new Date(),
-  });
+  };
 
-  return await exceptionRepo.save(exception);
+  const result = await AppDataSource.getRepository(ExceptionRequest)
+    .createQueryBuilder()
+    .insert()
+    .values(exception)
+    .output("INSERTED.id")
+    .execute();
+
+  // 🔍 Fix: use actual primary key name
+  const insertedId = result.identifiers?.[0]?.id;
+
+  if (!insertedId) {
+    throw new Error("Insert succeeded but no ID returned.");
+  }
+
+  const insertedRecord = await AppDataSource.getRepository(ExceptionRequest)
+    .createQueryBuilder("ex")
+    .where("ex.id = :id", { id: insertedId })
+    .getOne();
+
+  return insertedRecord;
 };
+
+/**
+ * Delete exception by ID (only if owned by employee & pending)
+ */
 export async function deleteExceptionById(exceptionId, employeeId) {
-  const exception = await exceptionRepo.findOne({
-    where: { id: exceptionId },
-    relations: ["employee"],
-  });
+  const exception = await AppDataSource.getRepository(ExceptionRequest)
+    .createQueryBuilder("ex")
+    .leftJoinAndSelect("ex.employee", "emp")
+    .where("ex.id = :exceptionId", { exceptionId })
+    .getOne();
 
   if (!exception) {
     logger.warn(`Attempted to delete non-existent exception ID ${exceptionId}`);
-    return null; // Let controller handle not-found logic
+    return null;
   }
 
   const isOwner = exception.employee?.EmployeeId === employeeId;
@@ -49,13 +77,19 @@ export async function deleteExceptionById(exceptionId, employeeId) {
     );
     return { unauthorized: true };
   }
+
   if (exception.currentStatus.toUpperCase() !== "PENDING") {
     logger.warn(
       `Attempt to delete non-pending exception (status: ${exception.currentStatus}) by Employee ${employeeId}`
     );
     return { invalidStatus: true, status: exception.currentStatus };
   }
-  await exceptionRepo.remove(exception);
+
+  await AppDataSource.getRepository(ExceptionRequest)
+    .createQueryBuilder()
+    .delete()
+    .where("id = :id", { id: exceptionId })
+    .execute();
 
   logger.info("Exception request deleted successfully", {
     exceptionId,
@@ -65,6 +99,9 @@ export async function deleteExceptionById(exceptionId, employeeId) {
   return { deleted: exception };
 }
 
+/**
+ * Bulk update exception requests
+ */
 export const bulkUpdateExceptionRequestService = async ({
   ids,
   status,
@@ -74,9 +111,7 @@ export const bulkUpdateExceptionRequestService = async ({
   rejectedBy,
   remarks,
 }) => {
-  // 1️ Perform the update
-  const result = await exceptionRepo
-    .createQueryBuilder()
+  const qb = AppDataSource.createQueryBuilder()
     .update(ExceptionRequest)
     .set({
       currentStatus: status,
@@ -88,20 +123,29 @@ export const bulkUpdateExceptionRequestService = async ({
     })
     .whereInIds(ids)
     .andWhere("currentStatus != :status", { status })
-    .returning(["id"])
-    .execute();
+    .returning(["id"]);
 
-  // 2 Fetch the updated records
+  const result = await qb.execute();
+
   const updatedIds = result.raw.map((r) => r.id);
-  const updatedRecords = await exceptionRepo.findBy({ id: In(updatedIds) });
+  if (updatedIds.length === 0) return [];
+
+  const updatedRecords = await AppDataSource.createQueryBuilder("ex")
+    .select("ex")
+    .from(ExceptionRequest, "ex")
+    .where("ex.id IN (:...ids)", { ids: updatedIds })
+    .getMany();
+
   return updatedRecords;
 };
 
+/**
+ * Get all selected dates + holiday list
+ */
 export const getSelectedDatesByMonth = async (employeeId, month, year) => {
-  // Compute start and end dates
-  const startDate = new Date(year, month - 2, 1); // month-2 because JS Date is 0-based
-  const endDate = new Date(year, month, 0); // last day of next month
-  endDate.setMonth(endDate.getMonth() + 2); // include one month after
+  // JS month: 0-based
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month + 1, 0); // include one month after
 
   const records = await exceptionRepo
     .createQueryBuilder("exception")
@@ -113,8 +157,9 @@ export const getSelectedDatesByMonth = async (employeeId, month, year) => {
     })
     .orderBy("exception.selectedDate", "ASC")
     .getRawMany();
+
   const allHolidaysList = await getHolidayList();
-  const exceptionDates = records.map((r) => r.exception_selectedDate);
+  const exceptionDates = records.map((r) => r.selectedDate);
   const combinedDates = Array.from(
     new Set([...allHolidaysList, ...exceptionDates])
   );

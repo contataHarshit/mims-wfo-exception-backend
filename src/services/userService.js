@@ -8,16 +8,12 @@ import UsersInFunctions from "../entity/legacy/UsersInFunctions.js";
 export const getUserRoleByWindowsName = async (windowsName) => {
   const userNameLower = windowsName.toLowerCase();
 
-  const usersRepository = AppDataSource.getRepository(AspnetUsers);
-  const usersInRolesRepository =
-    AppDataSource.getRepository(AspnetUsersInRoles);
-  const usersInFunctionsRepository =
-    AppDataSource.getRepository(UsersInFunctions);
-
   // 1️⃣ Get user from aspnet_Users
-  const aspnetUser = await usersRepository.findOne({
-    where: { LoweredUserName: userNameLower },
-  });
+  const aspnetUser = await AppDataSource.createQueryBuilder()
+    .select("user")
+    .from(AspnetUsers, "user")
+    .where("user.LoweredUserName = :userName", { userName: userNameLower })
+    .getOne();
 
   if (!aspnetUser) {
     console.warn(`User not found: ${windowsName}`);
@@ -26,42 +22,52 @@ export const getUserRoleByWindowsName = async (windowsName) => {
 
   const userId = aspnetUser.UserId;
 
-  // 2️⃣ Get user roles (with role relation)
-  const userRoles = await usersInRolesRepository.find({
-    where: { UserId: userId },
-    relations: ["role"],
-  });
+  // 2️⃣ Get user roles (joining aspnet_UsersInRoles and aspnet_Roles)
+  const userRoles = await AppDataSource.createQueryBuilder()
+    .select("role.RoleName", "RoleName")
+    .from(AspnetUsersInRoles, "uir")
+    .innerJoin(AspnetRoles, "role", "uir.RoleId = role.RoleId")
+    .where("uir.UserId = :userId", { userId })
+    .getRawMany();
 
   if (!userRoles || userRoles.length === 0) {
-    return { role: "EMPLOYEE" }; // default fallback
+    return { role: "EMPLOYEE" };
   }
 
-  // 3️⃣ Get the main role (assuming one primary role per user)
-  const primaryRole = userRoles[0].role.RoleName.toUpperCase();
+  const primaryRole = userRoles[0].RoleName.toUpperCase();
 
-  // 4️⃣ Apply logic
+  // 3️⃣ Check roles & functions
   if (primaryRole === "ADMIN") {
     return { role: "ADMIN", department: "MANAGMENT" };
   }
 
   if (primaryRole === "MANAGER") {
-    // Check if FunctionId = 1 exists
-    const userFunctions = await usersInFunctionsRepository.find({
-      where: { UserId: userId, FunctionId: 1 },
-    });
+    const userFunctions = await AppDataSource.createQueryBuilder()
+      .select("uf")
+      .from(UsersInFunctions, "uf")
+      .where("uf.UserId = :userId", { userId })
+      .andWhere("uf.FunctionId = :functionId", { functionId: 1 })
+      .getRawMany();
 
-    if (userFunctions && userFunctions.length > 0) {
+    if (userFunctions.length > 0) {
       return { role: "MANAGER", department: "HR" };
     } else {
       return { role: "MANAGER", department: "IT" };
     }
   }
-  const userFunctionsForAllHR = await usersInFunctionsRepository.find({
-    where: { UserId: userId, FunctionId: 1 },
-  });
-  if (userFunctionsForAllHR && userFunctionsForAllHR.length > 0) {
+
+  // 4️⃣ Check HR function for employee
+  const userFunctionsForAllHR = await AppDataSource.createQueryBuilder()
+    .select("uf")
+    .from(UsersInFunctions, "uf")
+    .where("uf.UserId = :userId", { userId })
+    .andWhere("uf.FunctionId = :functionId", { functionId: 1 })
+    .getRawMany();
+
+  if (userFunctionsForAllHR.length > 0) {
     return { role: "EMPLOYEE", department: "HR" };
   }
+
   // 5️⃣ Default role for others
   return { role: "EMPLOYEE", department: "IT" };
 };

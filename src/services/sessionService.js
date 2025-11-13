@@ -1,8 +1,8 @@
 import { AppDataSource } from "../config/data-source.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
-
+import WFH_UserSessions from "../entity/legacy/WFH_UserSessions.js";
 export const findSessionById = async (sessionId) => {
-  const sessionRepo = AppDataSource.getRepository("WFH_UserSessions");
+  const sessionRepo = AppDataSource.getRepository(WFH_UserSessions);
 
   const session = await sessionRepo.findOne({
     where: { ClientConnId: sessionId },
