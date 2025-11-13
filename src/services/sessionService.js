@@ -4,10 +4,10 @@ import WFH_UserSessions from "../entity/legacy/WFH_UserSessions.js";
 export const findSessionById = async (sessionId) => {
   const sessionRepo = AppDataSource.getRepository(WFH_UserSessions);
 
-  const session = await sessionRepo.findOne({
-    where: { ClientConnId: sessionId },
-  });
-
+  const session = await sessionRepo
+    .createQueryBuilder("s")
+    .where("s.ClientConnId = :id", { id: sessionId })
+    .getOne();
   if (!session || !session.SessionData) {
     throw new NotFoundError(`Session not found: ${sessionId}`);
   }
