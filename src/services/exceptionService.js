@@ -111,7 +111,8 @@ export const bulkUpdateExceptionRequestService = async ({
   rejectedBy,
   remarks,
 }) => {
-  const qb = AppDataSource.createQueryBuilder()
+  const qb = exceptionRepo
+    .createQueryBuilder()
     .update(ExceptionRequest)
     .set({
       currentStatus: status,
@@ -126,13 +127,13 @@ export const bulkUpdateExceptionRequestService = async ({
     .returning(["id"]);
 
   const result = await qb.execute();
-
   const updatedIds = result.raw.map((r) => r.id);
+
   if (updatedIds.length === 0) return [];
 
-  const updatedRecords = await AppDataSource.createQueryBuilder("ex")
-    .select("ex")
-    .from(ExceptionRequest, "ex")
+  // 2. SELECT updated rows (MSSQL safe)
+  const updatedRecords = await exceptionRepo
+    .createQueryBuilder("ex")
     .where("ex.id IN (:...ids)", { ids: updatedIds })
     .getMany();
 
@@ -142,26 +143,31 @@ export const bulkUpdateExceptionRequestService = async ({
 /**
  * Get all selected dates + holiday list
  */
+
 export const getSelectedDatesByMonth = async (employeeId, month, year) => {
-  // JS month: 0-based
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month + 1, 0); // include one month after
+  const pad = (n) => String(n).padStart(2, "0");
+  const startDate = `${year}-${pad(month)}-01`;
+  const endDate = `${year}-${pad(month)}-${new Date(year, month, 0).getDate()}`;
 
   const records = await exceptionRepo
     .createQueryBuilder("exception")
-    .select("exception.selectedDate")
+    .select("exception.selectedDate", "selectedDate") // alias it
     .where("exception.EmployeeId = :employeeId", { employeeId })
-    .andWhere("exception.selectedDate BETWEEN :startDate AND :endDate", {
-      startDate,
-      endDate,
-    })
+    .andWhere(
+      "CAST(exception.selectedDate AS DATE) BETWEEN :startDate AND :endDate",
+      { startDate, endDate }
+    )
     .orderBy("exception.selectedDate", "ASC")
     .getRawMany();
 
+  // Convert to YYYY-MM-DD
+  const exceptionDates = records.map((r) => {
+    const d = new Date(r.selectedDate);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  });
+
   const allHolidaysList = await getHolidayList();
-  const exceptionDates = records.map((r) => r.selectedDate);
-  const combinedDates = Array.from(
-    new Set([...allHolidaysList, ...exceptionDates])
-  );
-  return combinedDates;
+
+  // Combine and remove duplicates
+  return Array.from(new Set([...allHolidaysList, ...exceptionDates]));
 };
