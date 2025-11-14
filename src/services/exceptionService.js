@@ -157,6 +157,7 @@ export const getSelectedDatesByMonth = async (employeeId, month, year) => {
       "CAST(exception.selectedDate AS DATE) BETWEEN :startDate AND :endDate",
       { startDate, endDate }
     )
+    .andWhere("exception.currentStatus != :rejected", { rejected: "REJECTED" })
     .orderBy("exception.selectedDate", "ASC")
     .getRawMany();
 
