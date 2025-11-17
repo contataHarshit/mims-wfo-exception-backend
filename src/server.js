@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import app from "./app.js";
 import { AppDataSource } from "./config/data-source.js";
 import logger from "./utils/logger.js"; // Use Winston instead of console.log
+import "./cron-job/autoReject.js"; // Ensure cron jobs are initialized
 
 dotenv.config();
 

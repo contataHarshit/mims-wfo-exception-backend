@@ -17,3 +17,8 @@ export class PermissionDeniedError extends BaseError {
     super(message, statusCode);
   }
 }
+export class OwnRequestError extends BaseError {
+  constructor(message = "You cannot approve or reject your own request") {
+    super(message, 403);
+  }
+}

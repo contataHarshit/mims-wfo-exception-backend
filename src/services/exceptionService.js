@@ -3,6 +3,7 @@ import { In } from "typeorm";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 import logger from "../utils/logger.js";
 import { getHolidayList } from "./HolidayListService.js";
+import { OwnRequestError } from "../errors/AuthError.js";
 
 const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
 
@@ -111,6 +112,15 @@ export const bulkUpdateExceptionRequestService = async ({
   rejectedBy,
   remarks,
 }) => {
+  const ownRequests = await exceptionRepo
+    .createQueryBuilder("ex")
+    .where("ex.id IN (:...ids)", { ids })
+    .andWhere("ex.EmployeeId = :employeeId", { employeeId })
+    .getMany();
+
+  if (ownRequests.length > 0) {
+    throw new OwnRequestError();
+  }
   const qb = exceptionRepo
     .createQueryBuilder()
     .update(ExceptionRequest)
