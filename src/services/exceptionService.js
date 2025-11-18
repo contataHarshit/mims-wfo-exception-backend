@@ -4,6 +4,7 @@ import ExceptionRequest from "../entity/ExceptionRequest.js";
 import logger from "../utils/logger.js";
 import { getHolidayList } from "./HolidayListService.js";
 import { OwnRequestError } from "../errors/AuthError.js";
+import Employee from "../entity/legacy/Employee.js";
 
 const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
 
@@ -62,7 +63,20 @@ export const createException = async (data) => {
 export async function deleteExceptionById(exceptionId, employeeId) {
   const exception = await AppDataSource.getRepository(ExceptionRequest)
     .createQueryBuilder("ex")
-    .leftJoinAndSelect("ex.employee", "emp")
+    .leftJoin("ex.employee", "employee")
+    .addSelect([
+      "employee.EmployeeId",
+      "employee.FirstName",
+      "employee.LastName",
+      "employee.Email",
+    ])
+    .leftJoin("ex.manager", "manager")
+    .addSelect([
+      "manager.EmployeeId",
+      "manager.FirstName",
+      "manager.LastName",
+      "manager.Email",
+    ])
     .where("ex.id = :exceptionId", { exceptionId })
     .getOne();
 
@@ -96,7 +110,6 @@ export async function deleteExceptionById(exceptionId, employeeId) {
     exceptionId,
     deletedBy: employeeId,
   });
-
   return { deleted: exception };
 }
 
@@ -136,6 +149,7 @@ export const bulkUpdateExceptionRequestService = async ({
       currentStatus: status,
       updatedBy: employeeId,
       updatedByRole: updatedRole,
+      UpdatedById: { EmployeeId: employeeId },
       reviewRemarks: remarks,
       ...(status === "APPROVED" && { approvedBy }),
       ...(status === "REJECTED" && { rejectedBy }),
@@ -152,6 +166,20 @@ export const bulkUpdateExceptionRequestService = async ({
   // 2. SELECT updated rows (MSSQL safe)
   const updatedRecords = await exceptionRepo
     .createQueryBuilder("ex")
+    .leftJoin("ex.employee", "employee")
+    .addSelect([
+      "employee.EmployeeId",
+      "employee.FirstName",
+      "employee.LastName",
+      "employee.Email",
+    ])
+    .leftJoin("ex.manager", "manager")
+    .addSelect([
+      "manager.EmployeeId",
+      "manager.FirstName",
+      "manager.LastName",
+      "manager.Email",
+    ])
     .where("ex.id IN (:...ids)", { ids: updatedIds })
     .getMany();
 
@@ -164,8 +192,23 @@ export const bulkUpdateExceptionRequestService = async ({
 
 export const getSelectedDatesByMonth = async (employeeId, month, year) => {
   const pad = (n) => String(n).padStart(2, "0");
-  const startDate = `${year}-${pad(month)}-01`;
-  const endDate = `${year}-${pad(month)}-${new Date(year, month, 0).getDate()}`;
+
+  // ------------------------------
+  // Calculate previous, current, next months
+  // ------------------------------
+  const prev = new Date(year, month - 2, 1); // previous month
+  const curr = new Date(year, month - 1, 1); // current month
+  const next = new Date(year, month, 1); // next month
+
+  // START = 1st of previous month
+  const startDate = `${prev.getFullYear()}-${pad(prev.getMonth() + 1)}-01`;
+
+  // END = last day of next month
+  const endDate = `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${new Date(
+    next.getFullYear(),
+    next.getMonth() + 1,
+    0
+  ).getDate()}`;
 
   const records = await exceptionRepo
     .createQueryBuilder("exception")

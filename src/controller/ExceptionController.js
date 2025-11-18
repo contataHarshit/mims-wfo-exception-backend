@@ -142,19 +142,22 @@ export const deleteExceptionRequest = async (req, res) => {
       );
     }
     const emailSent = await sendMail(
-      result?.employee?.Email,
+      result?.deleted?.employee?.Email,
       "CANCELED",
       {
-        name: result?.employee?.FirstName + " " + result?.employee?.LastName,
+        name:
+          result?.deleted?.employee?.FirstName +
+          " " +
+          result?.deleted?.employee?.LastName,
         // reviewerName: manager?.FirstName + " " + manager?.LastName,
         // role: userInfo?.role,
         dates: result.selectedDate,
       },
-      result?.manager?.Email
+      result?.deleted?.manager?.Email
     );
     if (emailSent) {
       logger.info(
-        `Notification email sent to manager ${result?.manager?.Email} for employee ${employee?.Email}`
+        `Notification email sent to manager ${result?.deleted?.manager?.Email} for employee ${employee?.Email}`
       );
     }
     logger.info("Exception request deleted successfully", {
@@ -235,7 +238,6 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
       }
       groupedByEmployee[empEmail].dates.push(ex.selectedDate);
     });
-
     // Step 2: Send email to each employee and their manager
     for (const empEmail in groupedByEmployee) {
       const { employee, manager, dates } = groupedByEmployee[empEmail];
@@ -402,6 +404,7 @@ export const getExceptionSummary = async (req, res) => {
       filterType,
       page = 1,
       limit = 10,
+      exportAll = false,
     } = req.query;
 
     const summary = await getExceptionSummaryService({
@@ -413,6 +416,7 @@ export const getExceptionSummary = async (req, res) => {
       filterType,
       page: parseInt(page),
       limit: parseInt(limit),
+      exportAll,
     });
 
     return sendSuccess(res, {

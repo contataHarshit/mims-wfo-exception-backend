@@ -180,7 +180,7 @@ router.put(
  *         schema:
  *           type: boolean
  *       - in: query
- *         name: all
+ *         name: isAll
  *         schema:
  *           type: boolean
  *     responses:
@@ -313,6 +313,10 @@ router.get(
  *         schema:
  *           type: integer
  *           default: 10
+ *       - in: query
+ *         name: isAll
+ *         schema:
+ *           type: boolean
  *     responses:
  *       200:
  *         description: Summary data fetched successfully

@@ -12,6 +12,7 @@ export const getExceptionSummaryService = async ({
   reason,
   page = 1,
   limit = 10,
+  exportAll = false,
 }) => {
   // const offset = (page - 1) * limit;
   const whereCondition = {};
@@ -60,7 +61,7 @@ export const getExceptionSummaryService = async ({
 
     if (!summaryMap[empId]) {
       summaryMap[empId] = {
-        employeeId: empId,
+        // employeeId: empId,
         employeeNumber: req.employee.EmployeeNumber,
         employeeName: `${req.employee.FirstName} ${req.employee.LastName}`,
         designation: req.employee.currentDesignation?.Name ?? "NA",
@@ -86,18 +87,27 @@ export const getExceptionSummaryService = async ({
 
   // ✅ Apply pagination on employee count (not request count)
   const totalEmployees = employeeSummaryList.length;
-  const startIndex = (page - 1) * limit;
-  const paginatedData = employeeSummaryList.slice(
-    startIndex,
-    startIndex + limit
-  );
+  if (exportAll === true || exportAll === "true") {
+    return {
+      message: "Summary fetched successfully",
+      exportAll: true,
+      totalEmployees,
+      data: employeeSummaryList, // return everything
+    };
+  } else {
+    const startIndex = (page - 1) * limit;
+    const paginatedData = employeeSummaryList.slice(
+      startIndex,
+      startIndex + limit
+    );
 
-  return {
-    message: "Summary fetched successfully",
-    page,
-    limit,
-    totalEmployees, // ✅ pagination based on employee count
-    totalPages: Math.ceil(totalEmployees / limit),
-    data: paginatedData,
-  };
+    return {
+      message: "Summary fetched successfully",
+      page,
+      limit,
+      totalEmployees, // ✅ pagination based on employee count
+      totalPages: Math.ceil(totalEmployees / limit),
+      data: paginatedData,
+    };
+  }
 };

@@ -209,13 +209,42 @@ export const getExceptionRequestsWithPaginationService = async ({
   // ✅ SQL Server–safe query: disable distinct & ensure valid order column
   const queryBuilder = exceptionRepo
     .createQueryBuilder("exception")
-    .leftJoinAndSelect("exception.employee", "employee")
-    .leftJoinAndSelect("exception.manager", "manager")
-    .leftJoinAndSelect("exception.updatedBy", "updatedBy")
-    .leftJoinAndSelect("employee.currentDesignation", "currentDesignation")
+
+    // Employee join
+    .leftJoin("exception.employee", "employee")
+    .addSelect([
+      "employee.EmployeeNumber",
+      "employee.FirstName",
+      "employee.LastName",
+      "employee.Email",
+    ])
+
+    // Manager join
+    .leftJoin("exception.manager", "manager")
+    .addSelect([
+      "manager.EmployeeNumber",
+      "manager.FirstName",
+      "manager.LastName",
+      "manager.Email",
+    ])
+
+    // UpdatedBy join
+    .leftJoin("exception.updatedBy", "updatedBy")
+    .addSelect([
+      "updatedBy.EmployeeNumber",
+      "updatedBy.FirstName",
+      "updatedBy.LastName",
+      "updatedBy.Email",
+    ])
+
+    // Designation join
+    .leftJoin("employee.currentDesignation", "currentDesignation")
+    .addSelect(["currentDesignation.Name"])
+
+    // Filters + sorting
     .where(filters)
-    .distinct(false) // ✅ Prevent SQL Server DISTINCT subquery pagination issue
-    .orderBy("exception.id", "DESC"); // ✅ Safe order column for pagination
+    .distinct(false)
+    .orderBy("exception.id", "DESC");
 
   let data = [];
   let total = 0;
@@ -233,6 +262,5 @@ export const getExceptionRequestsWithPaginationService = async ({
     const end = start + limit;
     data = allData.slice(start, end);
   }
-
   return { data, total };
 };

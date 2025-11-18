@@ -11,7 +11,15 @@ export const formatEmployeeList = (employees) => {
 };
 export const sanitizeExceptionRequests = (leaveRequests) => {
   return leaveRequests.map((request) => {
-    const { employee, manager, updatedBy, ...rest } = request;
+    const {
+      employee,
+      manager,
+      updatedBy,
+      ManagerId,
+      EmployeeId,
+      UpdatedById,
+      ...rest
+    } = request;
 
     return {
       ...rest,
