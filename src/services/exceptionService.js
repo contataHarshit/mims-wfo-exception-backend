@@ -112,14 +112,22 @@ export const bulkUpdateExceptionRequestService = async ({
   rejectedBy,
   remarks,
 }) => {
-  const ownRequests = await exceptionRepo
-    .createQueryBuilder("ex")
-    .where("ex.id IN (:...ids)", { ids })
-    .andWhere("ex.EmployeeId = :employeeId", { employeeId })
-    .getMany();
+  if (status === "APPROVED") {
+    const ownRequests = await exceptionRepo
+      .createQueryBuilder("ex")
+      .select(["ex.id"])
+      .where("ex.id IN (:...ids)", { ids: ids })
+      .andWhere("ex.EmployeeId = :employeeId", {
+        employeeId: employeeId,
+      })
+      .getMany();
 
-  if (ownRequests.length > 0) {
-    throw new OwnRequestError();
+    // Prevent employees updating their own requests
+    if (ownRequests.length > 0) {
+      throw new OwnRequestError(
+        "You cannot approve your own exception request."
+      );
+    }
   }
   const qb = exceptionRepo
     .createQueryBuilder()

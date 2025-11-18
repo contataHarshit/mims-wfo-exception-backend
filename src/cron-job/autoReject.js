@@ -5,10 +5,9 @@ import logger from "../utils/logger.js"; // <-- Use your Winston logger
 
 // (adjust path as needed)
 const exceptionRepo = AppDataSource.getRepository(ExceptionRequest);
-cron.schedule("5 0 1 * *", async () => {
+cron.schedule("0 8 1 * *", async () => {
   try {
     logger.info(" Auto-Reject Cron Started...");
-
     // 1️ Get today's date (run date)
     const today = new Date();
 
@@ -31,7 +30,7 @@ cron.schedule("5 0 1 * *", async () => {
       .update(ExceptionRequest)
       .set({
         currentStatus: "REJECTED",
-        rejectedBy: "AUTO-REJECTED",
+        rejectedBy: "SYSTEM",
         reviewRemarks: "Automatically rejected by system",
       })
       .where("currentStatus = :status", { status: "PENDING" })

@@ -204,6 +204,7 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
     }
     const updatedPayload = {
       ids,
+      employeeId,
       status,
       updatedRole,
       remarks,
