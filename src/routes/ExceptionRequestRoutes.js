@@ -314,7 +314,7 @@ router.get(
  *           type: integer
  *           default: 10
  *       - in: query
- *         name: isAll
+ *         name: exportAll
  *         schema:
  *           type: boolean
  *     responses:
