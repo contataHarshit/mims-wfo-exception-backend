@@ -17,6 +17,8 @@ import { BadRequestError } from "../errors/BadRequestError.js";
 import { sendMail } from "../utils/mailer.js";
 import { PermissionDeniedError } from "../errors/AuthError.js";
 import { sanitizeExceptionRequests } from "../utils/sanitizedUtils.js";
+import dotenv from "dotenv";
+dotenv.config();
 export const createExceptionRequest = async (req, res) => {
   const employeeNumber = req.user?.employeeNumber;
   const userInfo = req.user;
@@ -71,15 +73,14 @@ export const createExceptionRequest = async (req, res) => {
     const allDates = createdExceptions.map((ex) => ex.selectedDate);
     const formattedDates = allDates.map((d) => `<li>${d}</li>`).join("");
     const emailSent = await sendMail(
-      manager?.Email,
+      manager?.Email, // To
       "PENDING",
       {
-        name: manager?.FirstName + " " + manager?.LastName,
-        employeeName: req?.user?.name,
-        // role: userInfo?.role,
+        managerName: manager?.FirstName + " " + manager?.LastName,
+        employeeName: employee?.FirstName + " " + employee?.LastName,
         dates: formattedDates,
       },
-      employee?.Email
+      employee?.Email // CC
     );
     if (emailSent) {
       logger.info(
@@ -142,19 +143,18 @@ export const deleteExceptionRequest = async (req, res) => {
       );
     }
     const emailSent = await sendMail(
-      result?.deleted?.employee?.Email,
+      result?.deleted?.employee?.Email, // To employee
       "CANCELED",
       {
-        name:
+        employeeName:
           result?.deleted?.employee?.FirstName +
           " " +
           result?.deleted?.employee?.LastName,
-        // reviewerName: manager?.FirstName + " " + manager?.LastName,
-        // role: userInfo?.role,
         dates: result.selectedDate,
       },
-      result?.deleted?.manager?.Email
+      result?.deleted?.manager?.Email // CC manager (optional)
     );
+
     if (emailSent) {
       logger.info(
         `Notification email sent to manager ${result?.deleted?.manager?.Email} for employee ${employee?.Email}`
@@ -243,26 +243,26 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
       const { employee, manager, dates } = groupedByEmployee[empEmail];
       let emailSentTo = employee?.Email;
       let ccTO = [manager?.Email];
+
       if (status === "APPROVED") {
         const hrgroupEmail = process.env.HR_EMAIL;
-        if (req.user.email !== manager?.Email)
-          ccTO = [...ccTO, req.user.email, hrgroupEmail];
+
+        ccTO.push(hrgroupEmail);
       }
-      // Format dates as list items
+      // Build dates list
       const formattedDates = dates.map((d) => `<li>${d}</li>`).join("");
 
       // Send email
       const emailSent = await sendMail(
-        emailSentTo, // Employee email
-        status === "APPROVED" ? "APPROVED" : "REJECTED",
+        emailSentTo,
+        status, // "APPROVED" or "REJECTED"
         {
-          name: `${employee?.FirstName} ${employee?.LastName}`,
-          reviewerName: req?.user?.name,
+          employeeName: `${employee?.FirstName} ${employee?.LastName}`,
+          managerName: `${manager?.FirstName} ${manager?.LastName}`,
           dates: formattedDates,
         },
-        req?.user?.email
+        ccTO
       );
-
       if (emailSent) {
         logger.info(
           `Notification email sent to ${employee?.Email} and manager ${manager?.Email} status:${status} updatedby:${req.user.email}`

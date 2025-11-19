@@ -30,13 +30,14 @@ export const sendMail = async (to, templateKey, templateData, cc) => {
       to,
       subject,
       html: body,
+      cc: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
     };
-    if (cc) {
-      mailOptions.cc = [cc];
-      if (templateKey === "APPROVED") {
-        mailOptions.cc.push(process.env.ADMIN_EMAIL);
-      }
-    }
+    // if (cc) {
+    //   mailOptions.cc = [cc];
+    //   if (templateKey === "APPROVED") {
+    //     mailOptions.cc.push(process.env.ADMIN_EMAIL);
+    //   }
+    // }
     console.log("Mail options:", mailOptions); // Debug log
     const info = await transporter.sendMail(mailOptions);
     logger.info(`Mail sent, messageId: ${info.messageId} to: ${to}`);
