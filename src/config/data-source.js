@@ -9,6 +9,7 @@ import AspnetUsersInRoles from "../entity/legacy/aspnet_UsersInRoles.js";
 import UsersInFunctions from "../entity/legacy/UsersInFunctions.js";
 import Designation from "../entity/legacy/Designation.js";
 import HolidayList from "../entity/legacy/HolidayList.js";
+import EmployeeView from "../entity/legacy/EmployeeView.js";
 dotenv.config();
 
 export const AppDataSource = new DataSource({
@@ -31,6 +32,7 @@ export const AppDataSource = new DataSource({
     UsersInFunctions,
     Designation /* add other entities here */,
     HolidayList,
+    EmployeeView,
   ],
   migrations: ["./src/migration/*.js"], // note the "./" at the start
   extra: {

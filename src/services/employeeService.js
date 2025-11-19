@@ -1,9 +1,15 @@
 import { AppDataSource } from "../config/data-source.js";
-import { formatEmployeeList } from "../utils/sanitizedUtils.js";
+import {
+  formatEmployeeList,
+  formatEmployeeView,
+  formatManagerList,
+} from "../utils/sanitizedUtils.js";
 import Employee from "../entity/legacy/Employee.js";
+import EmployeeView from "../entity/legacy/EmployeeView.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
 
 const employeeRepo = AppDataSource.getRepository(Employee);
+const viewRepo = AppDataSource.getRepository(EmployeeView);
 
 // ✅ Find employee by EmployeeNumber (varchar)
 export const findEmployeeByNumber = async (employeeNumber) => {
@@ -36,80 +42,58 @@ export const findEmployeeById = async (employeeId) => {
 };
 
 // ✅ Find employees by ManagerId (pagination optional)
-export const findEmployeeByManagerId = async (
-  managerId,
-  page = 1,
-  limit = 10
-) => {
-  const offset = (page - 1) * limit;
-
-  const [employees, total] = await Promise.all([
-    employeeRepo
-      .createQueryBuilder("employee")
-      .where("employee.ManagerId = :managerId", { managerId })
-      .orderBy("employee.EmployeeId", "ASC")
-      // Uncomment if you want pagination:
-      // .skip(offset)
-      // .take(limit)
-      .getMany(),
-    employeeRepo
-      .createQueryBuilder("employee")
-      .where("employee.ManagerId = :managerId", { managerId })
-      .getCount(),
-  ]);
+export const findEmployeeByManagerId = async (managerId) => {
+  const employees = await viewRepo
+    .createQueryBuilder("vw")
+    .where("vw.ManagerCode = :managerId", { managerId })
+    .orderBy("vw.EmployeeName", "ASC")
+    .getMany();
 
   if (!employees.length) {
     throw new NotFoundError(`No employees found for manager ID "${managerId}"`);
   }
 
-  return { employees: formatEmployeeList(employees), total };
+  return { employees: formatEmployeeView(employees), total: employees.length };
 };
 
 // ✅ Find all employees (optional pagination)
-export const findAllEmployees = async (page = 1, limit = 10) => {
-  const offset = (page - 1) * limit;
-
-  const [employees, total] = await Promise.all([
-    employeeRepo
-      .createQueryBuilder("employee")
-      .orderBy("employee.EmployeeId", "ASC")
-      // Uncomment to enable pagination:
-      // .skip(offset)
-      // .take(limit)
-      .getMany(),
-    employeeRepo.createQueryBuilder("employee").getCount(),
-  ]);
+export const findAllEmployees = async () => {
+  const employees = await viewRepo
+    .createQueryBuilder("vw")
+    .orderBy("vw.EmployeeName", "ASC")
+    .getMany();
 
   if (!employees.length) {
     throw new NotFoundError(`No employees found`);
   }
-
-  return { employees: formatEmployeeList(employees), total };
+  return { employees: formatEmployeeView(employees), total: employees.length }; // already in view format
 };
 
 // ✅ Find all managers (IsMentor = true)
 export const findAllManagers = async (page = 1, limit = 10) => {
   const offset = (page - 1) * limit;
 
+  const subQuery = viewRepo
+    .createQueryBuilder("sub")
+    .select("DISTINCT sub.ManagerCode")
+    .where("sub.ManagerCode IS NOT NULL");
+
   const [managers, total] = await Promise.all([
-    employeeRepo
-      .createQueryBuilder("employee")
-      .leftJoinAndSelect("employee.currentDesignation", "designation")
-      .where("employee.IsMentor = :isMentor", { isMentor: true })
-      .orderBy("employee.FirstName", "ASC")
-      // Uncomment if pagination needed:
-      // .skip(offset)
-      // .take(limit)
+    viewRepo
+      .createQueryBuilder("vw")
+      .where(`vw.EmployeeCode IN (${subQuery.getQuery()})`)
+      .setParameters(subQuery.getParameters())
+      .orderBy("vw.EmployeeName", "ASC")
+      // .skip(offset)     // ✅ FIXED
+      // .take(limit)      // ✅ FIXED
       .getMany(),
-    employeeRepo
-      .createQueryBuilder("employee")
-      .where("employee.IsMentor = :isMentor", { isMentor: true })
+
+    viewRepo
+      .createQueryBuilder("vw")
+      .where(`vw.EmployeeCode IN (${subQuery.getQuery()})`)
+      .setParameters(subQuery.getParameters())
       .getCount(),
   ]);
 
-  if (!managers.length) {
-    throw new NotFoundError(`No managers found`);
-  }
-
-  return { managers: formatEmployeeList(managers), total };
+  return { managers: formatManagerList(managers), total };
 };

@@ -9,6 +9,20 @@ export const formatEmployeeList = (employees) => {
     }),
   }));
 };
+export const formatEmployeeView = (employees) => {
+  return employees.map((emp) => ({
+    EmployeeNumber: emp?.EmployeeCode,
+    FullName: emp?.EmployeeName,
+    designation: emp?.EmployeeDesignation,
+  }));
+};
+export const formatManagerList = (employees) => {
+  return employees.map((emp) => ({
+    EmployeeNumber: emp?.EmployeeCode,
+    FullName: emp?.EmployeeName,
+    designation: emp?.EmployeeDesignation,
+  }));
+};
 export const sanitizeExceptionRequests = (leaveRequests) => {
   return leaveRequests.map((request) => {
     const {
