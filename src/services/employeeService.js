@@ -32,6 +32,10 @@ export const findEmployeeById = async (employeeId) => {
   const employee = await employeeRepo
     .createQueryBuilder("employee")
     .where("employee.EmployeeId = :employeeId", { employeeId })
+    .andWhere("employee.IsActive IN (:...activeValues)", {
+      activeValues: [1, 2],
+    })
+    .andWhere("employee.EmployeeLocationId = :loc", { loc: 1 })
     .getOne();
 
   if (!employee) {
