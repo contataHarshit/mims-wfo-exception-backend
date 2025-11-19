@@ -37,6 +37,7 @@ export const sendMail = async (to, templateKey, templateData, cc) => {
         mailOptions.cc.push(process.env.ADMIN_EMAIL);
       }
     }
+    console.log("Mail options:", mailOptions); // Debug log
     const info = await transporter.sendMail(mailOptions);
     logger.info(`Mail sent, messageId: ${info.messageId} to: ${to}`);
     return true;

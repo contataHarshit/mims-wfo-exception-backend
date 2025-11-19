@@ -35,12 +35,8 @@ export const findEmployeeById = async (employeeId) => {
     .andWhere("employee.IsActive IN (:...activeValues)", {
       activeValues: [1, 2],
     })
-    .andWhere("employee.EmployeeLocationId = :loc", { loc: 1 })
+    // .andWhere("employee.EmployeeLocationId = :loc", { loc: 1 })
     .getOne();
-
-  if (!employee) {
-    throw new NotFoundError(`Employee with ID "${employeeId}" not found`);
-  }
 
   return employee;
 };

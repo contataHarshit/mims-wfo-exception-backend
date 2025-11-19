@@ -26,7 +26,9 @@ export const getEmployee = async (req, res) => {
         requestedEmployeeId: employeeId,
         user: userInfo,
       });
-      throw new NotFoundError(`Employee with ID "${employeeId}" not found`);
+      throw new NotFoundError(
+        `Employee with ID "${employeeId}" not found or not active employee`
+      );
     }
 
     const result = {
