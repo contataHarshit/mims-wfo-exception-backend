@@ -1,22 +1,22 @@
 [
   {
     "templateName": "PENDING",
-    "subject": "Work-From-Home Request – {{employeeName}}",
-    "body": "<p>Hi {{managerName}},</p><p>I would like to request Work-From-Home for the following date(s):</p><ul>{{dates}}</ul><p><strong>Reason:</strong> {{reason}}</p><p>Please review and let me know if you need any additional information.</p><p>Regards,<br>{{employeeName}}</p>"
+    "subject": "WFH Request of {{employeeName}}",
+    "body": "<p>Hello {{managerName}},</p><p>{{employeeName}} has applied for a Work-From-Home request.</p><p>Request Details:</p><p>Date: {{requestDates}}</p><p>To take action on the request, please <a href='http://mims/'>click here</a>.</p><p>This is an auto-generated email, please do not reply.</p><p>Regards,<br>Team HR</p>"
   },
   {
     "templateName": "APPROVED",
-    "subject": "Your Work-From-Home Request Has Been Approved",
-    "body": "<p>Hi {{employeeName}},</p><p>Your Work-From-Home request for the following date(s) has been approved:</p><ul>{{dates}}</ul><p>Regards,<br>{{managerName}}</p>"
+    "subject": "WFH Request has been approved of {{employeeName}}",
+    "body": "<p>Hello {{employeeName}},</p><p>Your following Work-From-Home request has been approved.</p><p>Request Details:</p><p>Date: {{requestDates}}</p><p>Approved By: {{approvedBy}}</p><p>This is an auto-generated email, please do not reply.</p><p>Regards,<br>Team HR</p>"
   },
   {
     "templateName": "REJECTED",
-    "subject": "Your Work-From-Home Request Has Been Rejected",
-    "body": "<p>Hi {{employeeName}},</p><p>Your Work-From-Home request for the following date(s) has been rejected:</p><ul>{{dates}}</ul><p>If you would like to discuss this further or need clarification, please feel free to contact me.</p><p>Regards,<br>{{managerName}}</p>"
+    "subject": "WFH Request has been rejected of {{employeeName}}",
+    "body": "<p>Hello {{employeeName}},</p><p>Your following Work-From-Home request has been rejected.</p><p>Request Details:</p><p>Date: {{requestDates}}</p><p>Rejected By: {{rejectedBy}}</p><p>This is an auto-generated email, please do not reply.</p><p>Regards,<br>Team HR</p>"
   },
   {
     "templateName": "CANCELED",
-    "subject": "Your Work-From-Home Request Has Been Cancelled",
-    "body": "<p>Hi {{employeeName}},</p><p>This is to confirm that your Work-From-Home request for the following date(s) has been cancelled as per your request:</p><ul>{{dates}}</ul><p>Regards,<br>WFH Support Team</p>"
+    "subject": "{{canceledBy}} has cancelled WFH Request",
+    "body": "<p>Hello {{managerName}},</p><p>{{canceledBy}} has cancelled the Work-From-Home request.</p><p>Request Details:</p><p>Date: {{requestDates}}</p><p>Cancelled By: {{canceledBy}}</p><p>This is an auto-generated email, please do not reply.</p><p>Regards,<br>Team HR</p>"
   }
 ]

@@ -17,6 +17,7 @@ import { BadRequestError } from "../errors/BadRequestError.js";
 import { sendMail } from "../utils/mailer.js";
 import { PermissionDeniedError } from "../errors/AuthError.js";
 import { sanitizeExceptionRequests } from "../utils/sanitizedUtils.js";
+import { formatDate } from "../utils/dateUtils.js";
 import dotenv from "dotenv";
 dotenv.config();
 export const createExceptionRequest = async (req, res) => {
@@ -71,17 +72,18 @@ export const createExceptionRequest = async (req, res) => {
       createdExceptions.push(saved);
     }
     const allDates = createdExceptions.map((ex) => ex.selectedDate);
-    const formattedDates = allDates.map((d) => `<li>${d}</li>`).join("");
+    const formattedDates = allDates.map((d) => formatDate(d)).join(", ");
     const emailSent = await sendMail(
-      manager?.Email, // To
+      manager?.Email,
       "PENDING",
       {
-        managerName: manager?.FirstName + " " + manager?.LastName,
-        employeeName: employee?.FirstName + " " + employee?.LastName,
-        dates: formattedDates,
+        managerName: `${manager?.FirstName} ${manager?.LastName}`,
+        employeeName: `${employee?.FirstName} ${employee?.LastName}`,
+        requestDates: formattedDates,
       },
-      employee?.Email // CC
+      employee?.Email
     );
+
     if (emailSent) {
       logger.info(
         `Notification email sent to manager ${manager?.Email} for employee ${employee?.Email}`
@@ -142,19 +144,17 @@ export const deleteExceptionRequest = async (req, res) => {
         `Only PENDING exceptions can be deleted (current status: ${result.status})`
       );
     }
+    const { manager } = result?.deleted;
     const emailSent = await sendMail(
-      result?.deleted?.employee?.Email, // To employee
-      "CANCELED",
+      manager?.Email, // Send to manager
+      "CANCELED", // Template name
       {
-        employeeName:
-          result?.deleted?.employee?.FirstName +
-          " " +
-          result?.deleted?.employee?.LastName,
-        dates: result.selectedDate,
+        managerName: `${manager?.FirstName} ${manager?.LastName}`,
+        canceledBy: `${employee?.FirstName} ${employee?.LastName}`, // or "SYSTEM"
+        requestDates: formatDate(result?.deleted?.selectedDate),
       },
-      result?.deleted?.manager?.Email // CC manager (optional)
+      employee?.Email // CC Employee
     );
-
     if (emailSent) {
       logger.info(
         `Notification email sent to manager ${result?.deleted?.manager?.Email} for employee ${employee?.Email}`
@@ -236,31 +236,43 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
           dates: [],
         };
       }
-      groupedByEmployee[empEmail].dates.push(ex.selectedDate);
+      groupedByEmployee[empEmail].dates.push(formatDate(ex.selectedDate));
     });
     // Step 2: Send email to each employee and their manager
     for (const empEmail in groupedByEmployee) {
       const { employee, manager, dates } = groupedByEmployee[empEmail];
+
       let emailSentTo = employee?.Email;
       let ccTO = [manager?.Email];
 
+      // Include HR only when approved
       if (status === "APPROVED") {
         const hrgroupEmail = process.env.HR_EMAIL;
-
         ccTO.push(hrgroupEmail);
       }
-      // Build dates list
-      const formattedDates = dates.map((d) => `<li>${d}</li>`).join("");
+
+      // Format dates: "date1, date2, date3"
+      const formattedDates = dates.join(", ");
+
+      // Build dynamic fields for template
+      const emailData = {
+        employeeName: `${employee?.FirstName} ${employee?.LastName}`,
+        requestDates: formattedDates,
+      };
+
+      if (status === "APPROVED") {
+        emailData.approvedBy = req.user?.name;
+      }
+
+      if (status === "REJECTED") {
+        emailData.rejectedBy = req.user?.name;
+      }
 
       // Send email
       const emailSent = await sendMail(
         emailSentTo,
         status, // "APPROVED" or "REJECTED"
-        {
-          employeeName: `${employee?.FirstName} ${employee?.LastName}`,
-          managerName: `${manager?.FirstName} ${manager?.LastName}`,
-          dates: formattedDates,
-        },
+        emailData,
         ccTO
       );
       if (emailSent) {
