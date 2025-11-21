@@ -71,18 +71,40 @@ export const createExceptionRequest = async (req, res) => {
       });
       createdExceptions.push(saved);
     }
-    const allDates = createdExceptions.map((ex) => ex.selectedDate);
-    const formattedDates = allDates.map((d) => formatDate(d)).join(", ");
+    // const allDates = createdExceptions.map((ex) => ex.selectedDate);
+    // const formattedDates = allDates.map((d) => formatDate(d)).join(", ");
+    const requestRows = createdExceptions
+      .map((ex) => {
+        return `
+    <tr>
+      <td>${formatDate(ex.selectedDate)}</td>
+      <td>${ex.primaryReason || "-"}</td>
+      <td>${ex.remarks || "-"}</td>
+    </tr>
+  `;
+      })
+      .join("");
     const emailSent = await sendMail(
       manager?.Email,
       "PENDING",
       {
         managerName: `${manager?.FirstName} ${manager?.LastName}`,
         employeeName: `${employee?.FirstName} ${employee?.LastName}`,
-        requestDates: formattedDates,
+        requestRows: requestRows,
       },
       employee?.Email
     );
+
+    // const emailSent = await sendMail(
+    //   manager?.Email,
+    //   "PENDING",
+    //   {
+    //     managerName: `${manager?.FirstName} ${manager?.LastName}`,
+    //     employeeName: `${employee?.FirstName} ${employee?.LastName}`,
+    //     requestDates: formattedDates,
+    //   },
+    //   employee?.Email
+    // );
 
     if (emailSent) {
       logger.info(
@@ -145,15 +167,25 @@ export const deleteExceptionRequest = async (req, res) => {
       );
     }
     const { manager } = result?.deleted;
+
+    // Build row for single cancelled request
+    const requestRows = `
+  <tr>
+    <td style="width:15%;">${formatDate(result?.deleted?.selectedDate)}</td>
+    <td style="width:20%;">${result?.deleted?.primaryReason || "-"}</td>
+    <td style="width:65%;">${result?.deleted?.remarks || "-"}</td>
+  </tr>
+`;
+
     const emailSent = await sendMail(
-      manager?.Email, // Send to manager
+      manager?.Email, // TO: Manager
       "CANCELED", // Template name
       {
         managerName: `${manager?.FirstName} ${manager?.LastName}`,
-        canceledBy: `${employee?.FirstName} ${employee?.LastName}`, // or "SYSTEM"
-        requestDates: formatDate(result?.deleted?.selectedDate),
+        canceledBy: `${employee?.FirstName} ${employee?.LastName}` || "SYSTEM",
+        requestRows: requestRows,
       },
-      employee?.Email // CC Employee
+      employee?.Email // CC: Employee
     );
     if (emailSent) {
       logger.info(
@@ -227,24 +259,33 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
     const groupedByEmployee = {};
 
     // Step 1: Group by employee email
+
     updateResult?.forEach((ex) => {
       const empEmail = ex?.employee?.Email;
+
       if (!groupedByEmployee[empEmail]) {
         groupedByEmployee[empEmail] = {
           employee: ex?.employee,
           manager: ex?.manager,
-          dates: [],
+          requests: [],
         };
       }
-      groupedByEmployee[empEmail].dates.push(formatDate(ex.selectedDate));
+
+      groupedByEmployee[empEmail].requests.push({
+        date: formatDate(ex.selectedDate),
+        primaryReason: ex.primaryReason,
+        remarks: ex.remarks,
+      });
     });
     // Step 2: Send email to each employee and their manager
     for (const empEmail in groupedByEmployee) {
-      const { employee, manager, dates } = groupedByEmployee[empEmail];
+      const { employee, manager, requests } = groupedByEmployee[empEmail];
 
       let emailSentTo = employee?.Email;
       let ccTO = [manager?.Email];
-
+      if (req.user?.email !== manager?.Email) {
+        ccTO.push(req.user?.email);
+      }
       // Include HR only when approved
       if (status === "APPROVED") {
         const hrgroupEmail = process.env.HR_EMAIL;
@@ -252,23 +293,34 @@ export const bulkUpdateExceptionRequest = async (req, res) => {
       }
 
       // Format dates: "date1, date2, date3"
-      const formattedDates = dates.join(", ");
+      const requestRows = requests
+        .map((item) => {
+          return `
+      <tr>
+        <td style="width:15%;">${item.date}</td>
+        <td style="width:20%;">${item.primaryReason || "-"}</td>
+        <td style="width:65%;">${item.remarks || "-"}</td>
+      </tr>
+    `;
+        })
+        .join("");
 
       // Build dynamic fields for template
       const emailData = {
         employeeName: `${employee?.FirstName} ${employee?.LastName}`,
-        requestDates: formattedDates,
+        requestRows: requestRows,
       };
 
       if (status === "APPROVED") {
         emailData.approvedBy = req.user?.name;
+        emailData.approvalRemarks = req.body?.remarks || "-";
       }
 
       if (status === "REJECTED") {
         emailData.rejectedBy = req.user?.name;
+        emailData.rejectionRemarks = req.body?.remarks || "-";
       }
 
-      // Send email
       const emailSent = await sendMail(
         emailSentTo,
         status, // "APPROVED" or "REJECTED"
