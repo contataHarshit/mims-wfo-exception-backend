@@ -1,5 +1,6 @@
 import { AppDataSource } from "../config/data-source.js";
 import HolidayList from "../entity/legacy/HolidayList.js";
+import LeaveInformation from "../entity/legacy/LeaveInformation.js";
 
 export const getHolidayList = async () => {
   const currentYear = new Date().getFullYear();
@@ -28,4 +29,43 @@ export const getHolidayList = async () => {
     });
 
   return dates;
+};
+export const getLeaveDatesList = async (employeeId, startDate, endDate) => {
+  const pad = (n) => String(n).padStart(2, "0");
+  // Fetch leave rows that overlap the selected month
+  const leaveRows = await AppDataSource.createQueryBuilder()
+    .select(["leave.FromDate AS FromDate", "leave.ToDate AS ToDate"])
+    .from(LeaveInformation, "leave")
+    .where("leave.EmployeeId = :employeeId", { employeeId })
+    .andWhere("leave.IsCancelled = 0 OR leave.IsCancelled IS NULL")
+    .andWhere("leave.FromDate <= :endDate AND leave.ToDate >= :startDate", {
+      startDate,
+      endDate,
+    })
+    .orderBy("leave.FromDate", "ASC")
+    .getRawMany();
+  // Format helper
+  const format = (d) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  let allDates = [];
+
+  for (const row of leaveRows) {
+    const leaveStart = new Date(row.FromDate);
+    const leaveEnd = new Date(row.ToDate);
+
+    // Select only the intersection with selected month
+    let dt = new Date(leaveStart);
+
+    while (dt <= leaveEnd) {
+      if (dt >= startDate && dt <= endDate) {
+        allDates.push(format(dt));
+      }
+      dt.setDate(dt.getDate() + 1);
+    }
+  }
+
+  // Remove duplicates
+  allDates = [...new Set(allDates)];
+  return allDates;
 };

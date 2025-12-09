@@ -72,7 +72,7 @@ export const getEmployee = async (req, res) => {
 
 // Get employees under current manager
 export const getManagerEmployee = async (req, res) => {
-  const managerId = req.user?.employeeId;
+  const managerId = req.user?.employeeNumber;
   const userInfo = req.user || {};
   const { page = 1, limit = 10 } = req.query; // default values
 

@@ -2,7 +2,7 @@ import { AppDataSource } from "../config/data-source.js";
 import { In } from "typeorm";
 import ExceptionRequest from "../entity/ExceptionRequest.js";
 import logger from "../utils/logger.js";
-import { getHolidayList } from "./HolidayListService.js";
+import { getHolidayList, getLeaveDatesList } from "./HolidayListService.js";
 import { OwnRequestError } from "../errors/AuthError.js";
 import Employee from "../entity/legacy/Employee.js";
 
@@ -229,7 +229,14 @@ export const getSelectedDatesByMonth = async (employeeId, month, year) => {
   });
 
   const allHolidaysList = await getHolidayList();
+  const leaveDates = await getLeaveDatesList(
+    employeeId,
+    new Date(startDate),
+    new Date(endDate)
+  );
 
   // Combine and remove duplicates
-  return Array.from(new Set([...allHolidaysList, ...exceptionDates]));
+  return Array.from(
+    new Set([...allHolidaysList, ...exceptionDates, ...leaveDates])
+  );
 };
